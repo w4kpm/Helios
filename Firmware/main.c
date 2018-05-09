@@ -95,9 +95,11 @@ static const WDGConfig wdgcfg = {
   STM32_IWDG_RL(1000),
   STM32_IWDG_WIN_DISABLED};
 
+// This got redefined in a later version of Chibios for this board
 #define GPIOA_PIN0 0
 
 static const SPIConfig std_spicfg1 = {
+  NULL,
   NULL,
   GPIOA,                                                        /*port of CS  */
   GPIOA_PIN0,                                                /*pin of CS   */
@@ -108,6 +110,7 @@ static const SPIConfig std_spicfg1 = {
 };
 
 static const SPIConfig std_spicfg2 = {
+  NULL,
   NULL,
   GPIOA,                                                        /*port of CS  */
   GPIOA_PIN1,                                                /*pin of CS   */
@@ -544,7 +547,7 @@ static THD_FUNCTION(Thread3, arg) {
 
 		  rx_text[rx_queue_num][rx_queue_pos] = 0;
 
-		  chBMPostTimeout(&RxMbx,(rx_queue_num<<8)|rx_queue_pos,TIME_INFINITE); // let our mailbox know
+		  chMBPostTimeout(&RxMbx,(rx_queue_num<<8)|rx_queue_pos,TIME_INFINITE); // let our mailbox know
 		  rx_queue_pos = 0;
 		  // we have a new entry
 		  rx_queue_num = (++rx_queue_num)%32;
@@ -660,9 +663,9 @@ int main(void) {
   chSysInit();
 
   palSetPad(GPIOB, 5);
-  //  wdgStart(&WDGD1, &wdgcfg);
-  //wdgReset(&WDGD1);
-  //chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
+  wdgStart(&WDGD1, &wdgcfg);
+  wdgReset(&WDGD1);
+  chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
 
 
   /*
@@ -712,9 +715,9 @@ int main(void) {
   //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
-  //  chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
+  chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloB\r\n")  ;
-  //  chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
+  chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloC\r\n")  ;
   ////chThdCreateStatic(waThread5, sizeof(waThread5), NORMALPRIO, Thread5, NULL);
 
@@ -727,38 +730,40 @@ int main(void) {
 
   //chThdSleepMilliseconds(500);
   chprintf((BaseSequentialStream*)&SD1,"HelloD\r\n")  ;
-  //spiAcquireBus(&SPID1);
-  chprintf((BaseSequentialStream*)&SD1,"HelloE\r\n")  ;
-  //  x = spi_read(&std_spicfg2,0x0f);
 
+  spiAcquireBus(&SPID1);
+  chprintf((BaseSequentialStream*)&SD1,"HelloE\r\n")  ;
+
+  x = spi_read(&std_spicfg2,0x0f);
+  chThdSleepMilliseconds(500);
   // should be 0xD4
   chprintf((BaseSequentialStream*)&SD1,"whoami 2  %x\r\n",x);
-  // x = spi_read(&std_spicfg1,0x0f);
+  x = spi_read(&std_spicfg1,0x0f);
   // should be 0x29
   chprintf((BaseSequentialStream*)&SD1,"whoami 1  %x\r\n",x);
 
 
-  //spi_read(&std_spicfg1,0x0f);
-  //spi_write(&std_spicfg2,0x20,0xcf);  // enable gyro
-  //spi_write(&std_spicfg2,0x23,0x10);  // set 500dps measurement
+  spi_read(&std_spicfg1,0x0f);
+  spi_write(&std_spicfg2,0x20,0xcf);  // enable gyro
+  spi_write(&std_spicfg2,0x23,0x10);  // set 500dps measurement
 
 
 
 
 
   
-  //spi_write(&std_spicfg1,0x24,0xf4);  // enable theromometer - magneto @100hz - hi res
-  //spi_write(&std_spicfg1,0x20,0x77);  // Read Accel at 100hz
-  //spi_write(&std_spicfg1,0x25,0x00);  // set to max 2gauss - best resolution
-  //spi_write(&std_spicfg1,0x26,0x00);  // take magneto out of lp mode & set to continuous
+  spi_write(&std_spicfg1,0x24,0xf4);  // enable theromometer - magneto @100hz - hi res
+  spi_write(&std_spicfg1,0x20,0x77);  // Read Accel at 100hz
+  spi_write(&std_spicfg1,0x25,0x00);  // set to max 2gauss - best resolution
+  spi_write(&std_spicfg1,0x26,0x00);  // take magneto out of lp mode & set to continuous
 
   
   chprintf((BaseSequentialStream*)&SD1,"Point A\r\n");
 
 
-  //mmult(&testm2,&testm,&result1,2,3,3,2);
+  mmult(&testm2,&testm,&result1,2,3,3,2);
   //print_matrix(&result1,2,2,"test1");
-  //mmult(&testm,&testm2,&result2,3,2,2,3);
+  mmult(&testm,&testm2,&result2,3,2,2,3);
   //print_matrix(&result2,3,3,"test2");
   
   
@@ -766,16 +771,17 @@ int main(void) {
   
   chThdSleepMilliseconds(500);
   chprintf((BaseSequentialStream*)&SD1,"\r\n");
-  //  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
+  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
   chprintf((BaseSequentialStream*)&SD1,"Point B\r\n");
 
 
   while (TRUE)
       {
-	  //	  wdgReset(&WDGD1);
+	  wdgReset(&WDGD1);
 	  step = (step +1)%100;
-	  chprintf((BaseSequentialStream*)&SD1,"%d\r\n",step);
+	  chprintf((BaseSequentialStream*)&SD1,"%d ",step);
+	  chprintf((BaseSequentialStream*)&SD1,"deg %d \r\n",deg);
 	  chThdSleepMilliseconds(250);
 	  palSetPad(GPIOB, 5);
 	  chThdSleepMilliseconds(250);
