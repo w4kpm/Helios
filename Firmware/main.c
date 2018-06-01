@@ -1,3 +1,10 @@
+// internal reference voltage calibration  0x1FFF F7BA - 0x1FFF F7BB
+
+// TS_CAL1 TS_CAL2 = 0x1FFF F7B8 - 0x1FFF F7B9 and 0x1FFF F7C2 - 0x1FFF F7C3
+
+
+
+
 /*
     ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
 
@@ -30,14 +37,18 @@
 static char text[255];
 
 
-#define ADC_GRP1_NUM_CHANNELS   1
+#define ADC_GRP1_NUM_CHANNELS   2
+#define ADC_GRP2_NUM_CHANNELS   4
 #define ADC_GRP1_BUF_DEPTH      1
+#define ADC_GRP2_BUF_DEPTH      1
 static adcsample_t samples1[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
+static adcsample_t samples2[ADC_GRP2_NUM_CHANNELS * ADC_GRP2_BUF_DEPTH];
 size_t nx = 0, ny = 0;
 static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 
   (void)adcp;
   (void)err;
+  dbg('error!!');
 }
 
 
@@ -50,10 +61,32 @@ static const ADCConversionGroup adcgrpcfg1 = {
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
     0,
-    ADC_SMPR2_SMP_AN16(ADC_SMPR_SMP_61P5)
+    ADC_SMPR2_SMP_AN16(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5)
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
-    ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16),
+    ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18),
+    0,
+    0,
+    0
+  }
+};
+
+
+
+static const ADCConversionGroup adcgrpcfg2 = {
+  FALSE,
+  ADC_GRP2_NUM_CHANNELS,
+  NULL,
+  adcerrorcallback,
+  ADC_CFGR_CONT,            /* CFGR    */
+  ADC_TR(0, 4095),          /* TR1     */
+  {                         /* SMPR[2] sample Register */
+
+      ADC_SMPR1_SMP_AN7(ADC_SMPR_SMP_601P5),
+        ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN12(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
+  },
+  {                         /* SQR[4]  Sequence Register - order & channel to read*/
+      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN7) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ4_N(ADC_CHANNEL_IN11), // solar,ext temp, internal reference, wind
     0,
     0,
     0
@@ -218,14 +251,38 @@ uint8_t decode_pos(char pos)
 }
 
 
-float calc_temp(int rawread)
+float calc_temp(float vdd,int rawread)
 {
-    float vts,temp;
-    vts = rawread / 4095.0;
-    temp = ((1.43 - vts)    / 4.3) + 25.0;
+    float vts,vts2,temp;
+    vts = (rawread / 4095.0)*vdd;
+    //chprintf((BaseSequentialStream*)&SD1,"vts %f \r\n",vts);
+    vts2 = 1.4-vts;
+    //chprintf((BaseSequentialStream*)&SD1,"vts2 %f \r\n",vts2);
+    temp = (vts2    / .0043) + 25.0;
     return temp;
 	
 }
+
+
+float calc_rtemp(float vdd,int rawread)
+{
+    float vts,vts2,temp;
+    vts = (rawread / 4095.0)*vdd;
+    //chprintf((BaseSequentialStream*)&SD1,"vts %f \r\n",vts);
+    vts2 = 1.4-vts;
+    //chprintf((BaseSequentialStream*)&SD1,"vts2 %f \r\n",vts2);
+    temp = (vts2    / .0043) + 25.0;
+    return temp;
+	
+}
+
+
+
+float calc_volts(float vdd,int rawread)
+{
+    return (rawread/4095.0)*vdd;
+}
+
 
 static THD_WORKING_AREA(waThread4, 2048);
 static THD_FUNCTION(Thread4, arg) {
@@ -323,24 +380,41 @@ int main(void) {
   halInit();
   chSysInit();
 
+void adcSTM32EnableTSVREFE(void) {
+
+  ADC12_COMMON->CCR |= ADC12_CCR_VREFEN;
+  ADC34_COMMON->CCR |= ADC34_CCR_VREFEN;
+}
+
+  
   palSetPad(GPIOB, 5);
   wdgStart(&WDGD1, &wdgcfg);
   wdgReset(&WDGD1);
   chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
   adcStart(&ADCD1, NULL);
-  adcSTM32EnableTS(&ADCD1);
 
+  adcSTM32EnableTSVREFE();
+
+  adcSTM32EnableTS(&ADCD1);
+  
+
+  adcStart(&ADCD4, NULL);
 
   /*
    * SPI1 I/O pins setup.
    */
+
+  palSetPadMode(GPIOD, 8, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 14, PAL_MODE_INPUT_ANALOG);
+  
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7));
 
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 
-  //palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
   
@@ -382,8 +456,10 @@ int main(void) {
 
   ////chThdCreateStatic(waThread6, sizeof(waThread6), NORMALPRIO, Thread6, NULL);  
   uint32_t x,y;
-
-
+  float VDD;
+  float outsideTemp;
+  float internalTemp;
+  float irradiance;
 
   
 
@@ -392,14 +468,41 @@ int main(void) {
       {
 	  wdgReset(&WDGD1);
 	  step = (step +1)%100;
-	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
-	  chThdSleepMilliseconds(1000);
 
-	  chprintf((BaseSequentialStream*)&SD1,"%d ",step);
-	  chprintf((BaseSequentialStream*)&SD1,"deg %.2f \r\n",calc_temp(samples1[0]));
+	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
+	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
+	  chThdSleepMilliseconds(250);
+	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
+	  
+	  chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
+	  chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d \r\n",samples2[0],samples2[1],samples2[2],samples2[3]);
+	  float resistance = (2048.0/samples2[1]) * 10000.0;
+	  // see http://www.giangrandi.ch/electronics/ntc/ntc.shtml
+	  float outsidetemp = (1.0/((log(resistance/10000.0)/4200.0)+1/298.15))-273.15;
+	  
+	  chprintf((BaseSequentialStream*)&SD1,"Resistance %f %f\r\n",resistance,outsidetemp);
+	  VDD = 3.3 * (*(uint16_t*)0x1FFFF7BA) / (samples2[2] * 1.0);
+	  irradiance = calc_volts(VDD,samples2[0])/.0002;
+	  //outsideTemp = calc_rtemp(VDD,samples2[1]);
+
+
+	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
+	  chThdSleepMilliseconds(250);
+	  internalTemp = calc_temp(VDD,samples1[0]);
+	  chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d \r\n",samples1[0],samples1[1]);
+
+	  //internalTemp = calc_temp(VDD,samples1[0]);
+	  float amps = (calc_volts(VDD,samples2[3])/120.0);
+	  float windspeed = (amps-0.004)*(50.0/.016);
+	  if (windspeed < 0.5)
+	      windspeed = 0;
+          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph \r\n",irradiance,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
+
+
+	  
 	  chThdSleepMilliseconds(250);
 	  palSetPad(GPIOB, 5);
-	  chThdSleepMilliseconds(250);
+	  chThdSleepMilliseconds(500);
 	  
 	  palClearPad(GPIOB, 5);
    }
