@@ -38,7 +38,7 @@ static char text[255];
 
 
 #define ADC_GRP1_NUM_CHANNELS   2
-#define ADC_GRP2_NUM_CHANNELS   4
+#define ADC_GRP2_NUM_CHANNELS   5
 #define ADC_GRP1_BUF_DEPTH      1
 #define ADC_GRP2_BUF_DEPTH      1
 static adcsample_t samples1[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
@@ -82,12 +82,12 @@ static const ADCConversionGroup adcgrpcfg2 = {
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
 
-      ADC_SMPR1_SMP_AN7(ADC_SMPR_SMP_601P5),
+      ADC_SMPR1_SMP_AN7(ADC_SMPR_SMP_601P5)|ADC_SMPR1_SMP_AN3(ADC_SMPR_SMP_601P5),
         ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN12(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
       ADC_SQR1_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN7) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ4_N(ADC_CHANNEL_IN11), // solar,ext temp, internal reference, wind
-    0,
+    ADC_SQR2_SQ5_N(ADC_CHANNEL_IN3),
     0,
     0
   }
@@ -406,6 +406,7 @@ void adcSTM32EnableTSVREFE(void) {
 
   palSetPadMode(GPIOD, 8, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 11, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 14, PAL_MODE_INPUT_ANALOG);
   
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7));    
@@ -460,8 +461,11 @@ void adcSTM32EnableTSVREFE(void) {
   float outsideTemp;
   float internalTemp;
   float irradiance;
+  float irradiance2;
 
-  
+  OPAMP4->CSR = 0X8041;
+  chThdSleepMilliseconds(250);
+  chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
 
 
   while (TRUE)
@@ -483,8 +487,10 @@ void adcSTM32EnableTSVREFE(void) {
 	  chprintf((BaseSequentialStream*)&SD1,"Resistance %f %f\r\n",resistance,outsidetemp);
 	  VDD = 3.3 * (*(uint16_t*)0x1FFFF7BA) / (samples2[2] * 1.0);
 	  irradiance = calc_volts(VDD,samples2[0])/.0002;
+	  irradiance2 = calc_volts(VDD,samples2[4])/(8*.0002);
 	  //outsideTemp = calc_rtemp(VDD,samples2[1]);
-
+	  chprintf((BaseSequentialStream*)&SD1,"OpAmp Mult %.2f\r\n",calc_volts(VDD,samples2[4])/calc_volts(VDD,samples2[0]));
+	  
 
 	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
 	  chThdSleepMilliseconds(250);
@@ -494,10 +500,12 @@ void adcSTM32EnableTSVREFE(void) {
 	  //internalTemp = calc_temp(VDD,samples1[0]);
 	  float amps = (calc_volts(VDD,samples2[3])/120.0);
 	  float windspeed = (amps-0.004)*(50.0/.016);
+	  float opamp4 = calc_volts(VDD,samples2[4]);
+	  
 	  if (windspeed < 0.5)
 	      windspeed = 0;
-          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph \r\n",irradiance,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
-
+          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f : %.2f,  inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance,irradiance2,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
+	  
 
 	  
 	  chThdSleepMilliseconds(250);
