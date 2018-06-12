@@ -33,6 +33,8 @@
 #include <string.h>
 #include "stm32f3xx.h"
 
+static uint8_t txbuf[2];
+static uint8_t rxbuf[3];
 
 static char text[255];
 
@@ -50,6 +52,46 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
   (void)err;
   dbg('error!!');
 }
+
+
+
+static const SPIConfig std_spicfg0 = {
+  NULL,
+  NULL,
+  GPIOA,                                                        /*port of CS  */
+  4,                                                /*pin of CS   */
+
+  0,
+  SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0                    /*CR2 register*/
+};
+
+
+
+void spi_write(location,data)
+{
+  spiStart(&SPID1,&std_spicfg0);
+  spiSelect(&SPID1);
+  txbuf[0] = location;
+  txbuf[1] = data;
+  spiSend(&SPID1,2,&txbuf);
+
+  
+  spiUnselect(&SPID1);
+  spiStop(&SPID1);
+}
+
+void spi_read(location)
+{
+  spiStart(&SPID1,&std_spicfg0);
+  spiSelect(&SPID1);
+  txbuf[0] = location;
+  spiSend(&SPID1,1,&txbuf);
+  spiReceive(&SPID1,3,&rxbuf);
+  spiUnselect(&SPID1);
+  spiStop(&SPID1);
+}
+
+
 
 
 static const ADCConversionGroup adcgrpcfg1 = {
@@ -415,6 +457,16 @@ void adcSTM32EnableTSVREFE(void) {
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 
+
+  // Temp SPI
+  //  palSetPadMode(GPIOA, 4, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+
+
+  
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
@@ -462,7 +514,15 @@ void adcSTM32EnableTSVREFE(void) {
   float internalTemp;
   float irradiance;
   float irradiance2;
+  uint8_t lsb,hsb;
+  float result;
+  float z1,z2,z3,z4;
+  float pt100temp;
+#define RTD_A 3.9083e-3
+#define RTD_B -5.775e-7
 
+
+  
   OPAMP4->CSR = 0X8041;
   chThdSleepMilliseconds(250);
   chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
@@ -505,7 +565,23 @@ void adcSTM32EnableTSVREFE(void) {
 	  if (windspeed < 0.5)
 	      windspeed = 0;
           chprintf((BaseSequentialStream*)&SD1,"irr: %.2f : %.2f,  inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance,irradiance2,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
+	  spi_write(0x80,0xc0);
+	  spi_read(0x0);
+	  chprintf((BaseSequentialStream*)&SD1,"spi: %x %x %x\r\n",rxbuf[0],rxbuf[1],rxbuf[2]);
+	  lsb = rxbuf[2];
+	  hsb = rxbuf[1];
+	  result = (hsb << 8) + lsb;
+	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  result = (result*430.0) / 32768.0;
 	  
+	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  z1 = -RTD_A;
+	  z2 = RTD_A * RTD_A - (4 * RTD_B);
+	  z3 = (4 * RTD_B) / 100.0;
+	  z4 = 2 * RTD_B;
+	  pt100temp = z2 + (z3 * result);
+	  pt100temp = (sqrt(pt100temp) + z1) / z4;
+	  chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
 
 	  
 	  chThdSleepMilliseconds(250);
