@@ -112,6 +112,8 @@ LDSCRIPT= $(STARTUPLD)/STM32F303xC.ld
 # setting.
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
+       $(CHIBIOS)/os/various/syscalls.c \
+       $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c
 
@@ -143,7 +145,7 @@ TCPPSRC =
 ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC)
+INCDIR = $(CHIBIOS)/os/hal/lib/streams $(ALLINC) $(TESTINC)
 
 #
 # Project, sources and paths

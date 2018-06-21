@@ -32,10 +32,17 @@
 #include "hal_queues.h"
 #include <string.h>
 #include "stm32f3xx.h"
-
+#include "font.h"
+#include "fontbig.h"
+static uint8_t txbuf[2];
+static uint8_t rxbuf[3];
 
 static char text[255];
+static uint8_t vbuf[32][128];
+static uint8_t vbuf2[32][128];
 
+static uint8_t oled_current_row;
+static uint8_t oled_current_column;
 
 #define ADC_GRP1_NUM_CHANNELS   2
 #define ADC_GRP2_NUM_CHANNELS   5
@@ -50,6 +57,358 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
   (void)err;
   dbg('error!!');
 }
+
+
+#define CS 15
+#define RST 14
+#define SPISELECT 11
+#define CK 13
+#define MISO 14
+#define MOSI 15
+#define DC 8
+
+
+
+static const SPIConfig std_spicfg0 = {
+  NULL,
+  NULL,
+  GPIOA,                                                        /*port of CS  */
+  4,                                                /*pin of CS   */
+
+  0,
+  SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0                    /*CR2 register*/
+};
+
+static const SPIConfig std_spicfg3 = {
+  NULL,
+  NULL,
+  GPIOB,                                                        /*port of CS  */
+  SPISELECT,                                                /*pin of CS   */
+  //SPI_CR1_CPOL|	SPI_CR1_CPHA |		\
+  //SPI_CR1_SPE|SPI_CR1_MSTR,
+  0,
+  SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0                    /*CR2 register*/
+};
+
+
+
+void led_write0(location)
+{
+  spiStart(&SPID2,&std_spicfg3);
+  spiSelect(&SPID2);
+  txbuf[0] = location;
+  spiSend(&SPID2,1,&txbuf);
+  spiUnselect(&SPID2);
+  spiStop(&SPID2);
+}
+
+void write_oled_command(char data)
+{
+    palClearPad(GPIOE,DC);
+    led_write0(data);
+}
+
+
+void write_oled_data(char data)
+{
+    palSetPad(GPIOE,DC);
+    led_write0(data);
+}
+
+
+void led_write(location,data)
+{
+  spiStart(&SPID2,&std_spicfg3);
+  spiSelect(&SPID2);
+  txbuf[0] = location;
+  txbuf[1] = data;
+  spiSend(&SPID2,2,&txbuf);
+  spiUnselect(&SPID2);
+  spiStop(&SPID2);
+}
+
+
+void set_oled_text_pos(uint8_t x,uint8_t y)
+{
+    oled_current_column = (x*6+2);
+    oled_current_row = (y*16);
+}
+
+
+void write_oled_char(char a)
+{
+  uint8_t j,i;
+
+   for (j=0; j<16; j++)
+  {
+
+    for (i=0; i<6; i++)
+    {
+	vbuf[oled_current_row+j][oled_current_column+i] = font[a][j][i];
+    }
+  }}
+
+
+//void write_big_oled_char(char a)
+//{
+//  uint8_t j,i;
+//
+//   for (j=0; j<16; j++)
+//  {
+//
+//    for (i=0; i<6; i++)
+//    {
+//	vbuf[oled_current_row+j*2][oled_current_column+i*2] = font[a][j][i];
+//	vbuf[oled_current_row+j*2][oled_current_column+i*2+1] = font[a][j][i];
+//	vbuf[oled_current_row+j*2+1][oled_current_column+i*2] = font[a][j][i];
+//	vbuf[oled_current_row+j*2+1][oled_current_column+i*2+1] = font[a][j][i];
+//    }
+//  }}
+//
+//
+
+void write_big_oled_char(char a)
+{
+  uint8_t j,i;
+
+   for (j=0; j<32; j++)
+  {
+
+    for (i=0; i<12; i++)
+    {
+	vbuf[oled_current_row+j][oled_current_column+i] = fontbig[a][j][i];
+    }
+  }}
+
+
+
+
+void oled_draw_string(uint8_t x,uint8_t y,char* text)
+{
+  uint8_t currentx = x;
+  uint8_t j;
+
+  for (j=0;j<(strlen(text));j++)
+    {
+	set_oled_text_pos(x+j,y);
+      write_oled_char(text[j]);
+    }
+}
+
+
+void oled_draw_big_string(uint8_t x,uint8_t y,char* text)
+{
+  uint8_t currentx = x;
+  uint8_t j;
+
+  for (j=0;j<(strlen(text));j++)
+    {
+	set_oled_text_pos((x+j)*2,y);
+      write_big_oled_char(text[j]);
+    }
+}
+
+
+
+
+
+
+
+
+void init_oled()
+{
+      uint8_t i, j,x;
+
+
+      chprintf(&SD1,"do oled command A\r\n");
+
+
+  write_oled_command(0xfd); // Unlock 
+  write_oled_command(0x12);
+
+  write_oled_command(0xae); // Set_Display_Off
+
+  write_oled_command(0x15); // Set_Column_Address
+  write_oled_command(0x00);
+  write_oled_command(0x7f);
+
+  write_oled_command(0x75); // Set_Row_Address
+  write_oled_command(0x00);
+  write_oled_command(0x1f);
+
+  write_oled_command(0x81); // Set_Contrast Current
+  write_oled_command(0x27);
+
+  write_oled_command(0x87); // Set_Current Range
+  
+  write_oled_command(0xa0); // Set_Remap_Format
+  write_oled_command(0x06); 
+
+
+  write_oled_command(0xa1); // Set_start line
+  write_oled_command(0x00); 
+
+  write_oled_command(0xa2); // Set_data offset
+  write_oled_command(0x00); 
+
+  write_oled_command(0xa8); // Set_mux ratio
+  write_oled_command(0x1f); 
+
+
+  
+  write_oled_command(0xb1); // Set_phase length
+  write_oled_command(0x71); 
+
+
+
+  write_oled_command(0xb3); // Set_Display_Clock
+  write_oled_command(0xf0);  // was 22 (31)
+
+  write_oled_command(0xb7); // set default linear
+  write_oled_command(0xbb);  // set pre-charge setup
+  write_oled_command(0x35);  // set pre-charge setup
+  write_oled_command(0xff);  // set pre-charge setup
+
+  write_oled_command(0xbc);  // set pre-charge voltage
+  write_oled_command(0x1f);  // set pre-charge voltage
+
+  write_oled_command(0xbe);  // set VCOMH
+  write_oled_command(0x0f);  // set VCOMH
+  write_oled_command(0xAf);  // set Display ON
+
+
+
+  
+  
+}
+
+void clear_oled()
+{
+    memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
+
+    memset(&vbuf,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
+                               // because the LCD would 'freak out' if lots
+                               // of null data was sent
+
+}
+
+
+
+void shade_oled(uint8_t shade)
+{
+        memset(&vbuf,shade,128*32);
+}
+
+
+
+
+void graphics_init()
+{
+  uint8_t row;
+  uint8_t col;
+
+
+  clear_oled();
+  //shade_oled(0x55);
+  oled_draw_string(0,0,"X");
+  oled_draw_string(0,0,"Helios ");
+
+
+}
+
+uint32_t checksum()
+{
+    uint32_t checksum;
+    int i;
+    int j;
+    checksum =0;
+    for (i=0;i<32;i++)
+	for(j=0;j<128;j++)
+	    checksum = checksum+vbuf[i][j];
+    return checksum;
+}
+
+
+static THD_WORKING_AREA(waThread2, 128);
+static THD_FUNCTION(Thread2, arg) {
+  (void)arg;
+  int pass = 0;
+  int cleared;
+  uint32_t cksum;
+  chRegSetThreadName("ScreenRefresh");
+
+  chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
+  spiStart(&SPID2,&std_spicfg3);
+  spiSelect(&SPID2);
+
+  while (TRUE) {
+      //      write_oled_command(0x15); // Set_Column_Address
+      //write_oled_command(0x00);
+      //write_oled_command(0x7f);
+
+      //write_oled_command(0x75); // Set_Row_Address
+      //write_oled_command(0x00);
+      //write_oled_command(0x1f);
+      palSetPad(GPIOE,DC);
+
+      spiSend(&SPID2,128*32,&vbuf);
+      //spiSend(&SPID2,128*32,&vbuf2);
+      
+      chThdSleepMilliseconds(1);
+      //spiUnselect(&SPID2);
+      //spiStop(&SPID2);
+    
+  }
+
+  return MSG_OK;
+}
+
+
+
+
+
+void spi_write(location,data)
+{
+  spiStart(&SPID1,&std_spicfg0);
+  spiSelect(&SPID1);
+  txbuf[0] = location;
+  txbuf[1] = data;
+  spiSend(&SPID1,2,&txbuf);
+
+  
+  spiUnselect(&SPID1);
+  spiStop(&SPID1);
+}
+
+void spi_read(location)
+{
+  spiStart(&SPID1,&std_spicfg0);
+  spiSelect(&SPID1);
+  txbuf[0] = location;
+  spiSend(&SPID1,1,&txbuf);
+  spiReceive(&SPID1,3,&rxbuf);
+  spiUnselect(&SPID1);
+  spiStop(&SPID1);
+}
+
+
+void init_spi()
+{
+  palSetPadMode(GPIOE, CS, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOE, RST, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOE, DC, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOB, SPISELECT, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPad(GPIOB,CS);
+  palSetPad(GPIOE,RST);
+  palClearPad(GPIOB,CK);
+  palClearPad(GPIOB,SPISELECT);
+
+}
+
+
+
+
+
 
 
 static const ADCConversionGroup adcgrpcfg1 = {
@@ -366,7 +725,6 @@ static THD_FUNCTION(Thread4, arg) {
 
     }
 
-
 int main(void) {
   unsigned i;
 
@@ -415,6 +773,19 @@ void adcSTM32EnableTSVREFE(void) {
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 
+
+  // Temp SPI
+  //  palSetPadMode(GPIOA, 4, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+
+
+  
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
@@ -441,13 +812,17 @@ void adcSTM32EnableTSVREFE(void) {
 
 
 
-
+  init_spi();
+  chprintf((BaseSequentialStream*)&SD1,"SPI init\r\n");
+  init_oled();
+  chprintf((BaseSequentialStream*)&SD1,"OLED init\r\n");
+  graphics_init();
 
     
 
 
   //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-
+  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
   chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloB\r\n")  ;
@@ -462,17 +837,30 @@ void adcSTM32EnableTSVREFE(void) {
   float internalTemp;
   float irradiance;
   float irradiance2;
+  uint8_t lsb,hsb;
+  float result;
+  float z1,z2,z3,z4;
+  float pt100temp;
+#define RTD_A 3.9083e-3
+#define RTD_B -5.775e-7
 
+
+  
   OPAMP4->CSR = 0X8041;
   chThdSleepMilliseconds(250);
   chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
 
 
+
+
   while (TRUE)
       {
 	  wdgReset(&WDGD1);
-	  step = (step +1)%100;
+	  step = (step +1)%255;
 
+
+
+	  
 	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 	  chThdSleepMilliseconds(250);
@@ -505,14 +893,34 @@ void adcSTM32EnableTSVREFE(void) {
 	  if (windspeed < 0.5)
 	      windspeed = 0;
           chprintf((BaseSequentialStream*)&SD1,"irr: %.2f : %.2f,  inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance,irradiance2,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
+	  spi_write(0x80,0xd0); // three wire
+	  spi_read(0x0);
+	  chprintf((BaseSequentialStream*)&SD1,"spi: %x %x %x\r\n",rxbuf[0],rxbuf[1],rxbuf[2]);
+	  lsb = rxbuf[2];
+	  hsb = rxbuf[1];
+	  result = (hsb << 8) + lsb;
+	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  result = (result*430.0) / 32768.0;
 	  
+	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  z1 = -RTD_A;
+	  z2 = RTD_A * RTD_A - (4 * RTD_B);
+	  z3 = (4 * RTD_B) / 100.0;
+	  z4 = 2 * RTD_B;
+	  pt100temp = z2 + (z3 * result);
+	  pt100temp = (sqrt(pt100temp) + z1) / z4;
+	  chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
 
-	  
-	  chThdSleepMilliseconds(250);
-	  palSetPad(GPIOB, 5);
-	  chThdSleepMilliseconds(500);
-	  
-	  palClearPad(GPIOB, 5);
+
+	  //chThdSleepMilliseconds(250);
+	  //palSetPad(GPIOB, 5);
+	  //shade_oled(step);
+	  sprintf(text,"%.1f %.0f ",pt100temp,irradiance2-6.0);
+	  oled_draw_big_string(0,0,text);
+	  //oled_draw_string(0,1,"012345678901234567890");
+	  //chThdSleepMilliseconds(500);
+
+	  //palClearPad(GPIOB, 5);
    }
 
 
