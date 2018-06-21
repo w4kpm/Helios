@@ -5,3 +5,6 @@
 [submodule "stm32-kicad-lib"]
 	path = stm32-kicad-lib
 	url = https://github.com/esden/stm32-kicad-lib.git
+[submodule "KiCad/kicad-footprints"]
+	path = KiCad/kicad-footprints
+	url = https://github.com/KiCad/kicad-footprints.git

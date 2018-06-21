@@ -1,4 +1,4 @@
-update=Wed 13 Jun 2018 03:04:05 PM EDT
+update=Mon 18 Jun 2018 04:33:26 PM EDT
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,19 +25,9 @@ version=1
 NetIExt=net
 [general]
 version=1
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
 [eeschema]
 version=1
-LibDir=../stm32-kicad-lib
+LibDir=../kicad-footprints
 [eeschema/libraries]
 LibName1=power
 LibName2=device
@@ -71,5 +61,3 @@ LibName29=opto
 LibName30=atmel
 LibName31=contrib
 LibName32=valves
-LibName33=stm32
-LibName34=MyParts
