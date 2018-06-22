@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 10 10
+Sheet 10 14
 Title ""
 Date ""
 Rev ""
@@ -276,7 +276,7 @@ RTD_MISO
 Text Label 6800 2650 1    60   ~ 0
 ~RTDcs1
 Text Label 7000 2650 1    60   ~ 0
-SCK
+RTD_SCK
 Text Label 7200 2650 1    60   ~ 0
 RTD_MOSI
 $EndSCHEMATC

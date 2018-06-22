@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 3 9
+Sheet 3 14
 Title ""
 Date ""
 Rev ""
@@ -177,8 +177,4 @@ Wire Wire Line
 	4700 5950 4700 5600
 Wire Wire Line
 	4700 5600 5400 5600
-Text HLabel 1100 3800 0    60   Input ~ 0
-Pyro+
-Wire Wire Line
-	2250 3800 1100 3800
 $EndSCHEMATC

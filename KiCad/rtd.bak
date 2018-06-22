@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 8 14
+Sheet 10 10
 Title ""
 Date ""
 Rev ""
@@ -48,15 +48,4 @@ Comment2 ""
 Comment3 ""
 Comment4 ""
 $EndDescr
-$Comp
-L STM32F303V(B-C)Tx_u U?
-U 5 1 5B21D336
-P 5450 3650
-F 0 "U?" H 5450 3750 50  0000 C CNN
-F 1 "STM32F303V(B-C)Tx_u" H 5450 2750 50  0000 C CNN
-F 2 "LQFP100" H 5550 2650 50  0000 C CIN
-F 3 "" H 5450 3650 50  0000 C CNN
-	5    5450 3650
-	-1   0    0    1   
-$EndComp
 $EndSCHEMATC

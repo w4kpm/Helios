@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr USLetter 11000 8500
 encoding utf-8
-Sheet 1 10
+Sheet 1 14
 Title ""
 Date ""
 Rev ""
@@ -63,7 +63,6 @@ F2 "485TX" I R 2050 1350 60
 F3 "485RX" I R 2050 1500 60 
 F4 "RX485_A(-)" I R 2050 1600 60 
 F5 "RX485_B(+)" I R 2050 1750 60 
-F6 "Pyro+" I R 2050 1250 60 
 $EndSheet
 $Sheet
 S 1150 2150 900  700 
@@ -73,19 +72,23 @@ F1 "GPIOB.sch" 60
 F2 "485TX" I R 2050 2300 60 
 F3 "485RX" I R 2050 2450 60 
 F4 "Snow" I R 2050 2750 60 
-F5 "Wind" I R 2050 2600 60 
 $EndSheet
 $Sheet
 S 1150 3150 950  650 
 U 5B21C79A
 F0 "GPIOC" 60
 F1 "GPIOC.sch" 60
+F2 "RTDSPI_CS" I R 2100 3350 60 
 $EndSheet
 $Sheet
 S 1150 4150 950  550 
 U 5B21C79D
 F0 "GPIOD" 60
 F1 "GPIOD.sch" 60
+F2 "Wind4_20" O R 2100 4350 60 
+F3 "Snow+24v" O R 2100 4450 60 
+F4 "pyro" O R 2100 4200 60 
+F5 "SPI_DRDY" I R 2100 4600 60 
 $EndSheet
 $Sheet
 S 1200 5000 950  650 
@@ -287,12 +290,6 @@ Wire Wire Line
 Text Label 5850 1650 0    60   ~ 0
 Pyro-
 Wire Wire Line
-	2050 1250 4650 1250
-Wire Wire Line
-	4650 1250 4650 1800
-Wire Wire Line
-	4650 1800 6950 1800
-Wire Wire Line
 	6950 1800 6950 1550
 Wire Wire Line
 	6950 1550 7050 1550
@@ -321,9 +318,7 @@ $EndComp
 Wire Wire Line
 	8250 1450 8000 1450
 Wire Wire Line
-	2050 2600 3050 2600
-Wire Wire Line
-	3050 2600 3050 1950
+	3050 1950 3050 4350
 Wire Wire Line
 	3050 1950 7700 1950
 Wire Wire Line
@@ -333,9 +328,7 @@ Wire Wire Line
 Text Label 7150 1950 0    60   ~ 0
 Wind
 Wire Wire Line
-	2050 2750 3250 2750
-Wire Wire Line
-	3250 2750 3250 2150
+	3250 2150 3250 4450
 Wire Wire Line
 	3250 2150 9050 2150
 Wire Wire Line
@@ -343,9 +336,88 @@ Wire Wire Line
 Wire Wire Line
 	9050 1550 9450 1550
 $Sheet
-S 6400 3500 750  550 
+S 4400 3500 750  550 
 U 5B2BDBB9
-F0 "rtd.sch" 60
-F1 "rtd.sch" 60
+F0 "rtd1" 60
+F1 "rtd1.sch" 60
+F2 "SPI-CS" I R 5150 3650 60 
 $EndSheet
+$Sheet
+S 5400 3500 700  600 
+U 5B2C674A
+F0 "rtd2" 60
+F1 "rtd2.sch" 60
+F2 "SPI-CS" I R 6100 3650 60 
+$EndSheet
+$Sheet
+S 6250 3500 650  600 
+U 5B2C7906
+F0 "rtd3" 60
+F1 "rtd3.sch" 60
+F2 "SPI-CS" I R 6900 3650 60 
+$EndSheet
+$Sheet
+S 7100 3500 650  600 
+U 5B2C795B
+F0 "rtd4" 60
+F1 "rtd4.sch" 60
+F2 "SPI-CS" I R 7750 3650 60 
+$EndSheet
+$Sheet
+S 7950 3500 650  600 
+U 5B2C7984
+F0 "rtd5" 60
+F1 "rtd5.sch" 60
+F2 "SPI-CS" I R 8600 3650 60 
+$EndSheet
+Wire Bus Line
+	2100 3350 3950 3350
+Wire Bus Line
+	3950 3350 3950 3200
+Wire Bus Line
+	3950 3200 8650 3200
+Entry Bus Bus
+	5100 3200 5200 3300
+Entry Bus Bus
+	6050 3200 6150 3300
+Entry Bus Bus
+	6900 3200 7000 3300
+Entry Bus Bus
+	7750 3200 7850 3300
+Entry Bus Bus
+	8650 3200 8750 3300
+Wire Bus Line
+	5200 3300 5200 3650
+Wire Bus Line
+	5200 3650 5150 3650
+Wire Bus Line
+	6150 3300 6150 3650
+Wire Bus Line
+	6150 3650 6100 3650
+Wire Bus Line
+	7000 3300 7000 3650
+Wire Bus Line
+	7000 3650 6900 3650
+Wire Bus Line
+	7850 3300 7850 3650
+Wire Bus Line
+	7850 3650 7750 3650
+Wire Bus Line
+	8750 3300 8750 3650
+Wire Bus Line
+	8750 3650 8600 3650
+Wire Bus Line
+	2100 4600 2850 4600
+Wire Bus Line
+	2850 4600 2850 3350
+Wire Wire Line
+	6950 1800 2900 1800
+Wire Wire Line
+	2900 1800 2900 4200
+Wire Wire Line
+	2900 4200 2100 4200
+Wire Wire Line
+	3250 4450 2100 4450
+Wire Wire Line
+	3050 4350 2100 4350
 $EndSCHEMATC

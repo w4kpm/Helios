@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 7 10
+Sheet 7 14
 Title ""
 Date ""
 Rev ""
@@ -77,17 +77,12 @@ L R R?
 U 1 1 5B221EA6
 P 2050 3200
 F 0 "R?" V 2130 3200 50  0000 C CNN
-F 1 "120" V 2050 3200 50  0000 C CNN
+F 1 "125" V 2050 3200 50  0000 C CNN
 F 2 "" V 1980 3200 50  0001 C CNN
 F 3 "" H 2050 3200 50  0001 C CNN
 	1    2050 3200
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	1300 3050 1500 3050
-Wire Wire Line
-	1700 3050 6400 3050
-Connection ~ 2050 3050
 Text HLabel 1250 3750 0    60   Output ~ 12
 Snow+24v
 $Comp
@@ -112,14 +107,6 @@ F 3 "" H 2400 3950 50  0001 C CNN
 	1    2400 3950
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	1250 3750 1450 3750
-Wire Wire Line
-	1750 3750 4800 3750
-Wire Wire Line
-	4800 3750 4800 3450
-Wire Wire Line
-	4800 3450 6400 3450
 Text HLabel 1100 4350 0    60   Output ~ 12
 pyro
 $Comp
@@ -133,12 +120,6 @@ F 3 "" H 1500 4350 50  0001 C CNN
 	1    1500 4350
 	0    1    1    0   
 $EndComp
-Wire Wire Line
-	1100 4350 1400 4350
-Wire Wire Line
-	3250 3250 3250 4350
-Wire Wire Line
-	3250 4350 1600 4350
 $Comp
 L +3.3V #PWR?
 U 1 1 5B222486
@@ -150,9 +131,6 @@ F 3 "" H 1100 2200 50  0001 C CNN
 	1    1100 2200
 	0    -1   -1   0   
 $EndComp
-Wire Wire Line
-	2400 3800 2400 3750
-Connection ~ 2400 3750
 $Comp
 L GND #PWR?
 U 1 1 5B222747
@@ -200,48 +178,36 @@ $EndComp
 $Comp
 L D_Schottky D?
 U 1 1 5B222BF7
-P 4050 4950
-F 0 "D?" H 4050 5050 50  0000 C CNN
-F 1 "D_Schottky" H 4050 4850 50  0000 C CNN
-F 2 "" H 4050 4950 50  0001 C CNN
-F 3 "" H 4050 4950 50  0001 C CNN
-	1    4050 4950
+P 4100 4950
+F 0 "D?" H 4100 5050 50  0000 C CNN
+F 1 "D_Schottky" H 4100 4850 50  0000 C CNN
+F 2 "" H 4100 4950 50  0001 C CNN
+F 3 "" H 4100 4950 50  0001 C CNN
+	1    4100 4950
 	0    1    1    0   
 $EndComp
 $Comp
 L D_Schottky D?
 U 1 1 5B222C5E
-P 4550 4950
-F 0 "D?" H 4550 5050 50  0000 C CNN
-F 1 "D_Schottky" H 4550 4850 50  0000 C CNN
-F 2 "" H 4550 4950 50  0001 C CNN
-F 3 "" H 4550 4950 50  0001 C CNN
-	1    4550 4950
+P 4500 4950
+F 0 "D?" H 4500 5050 50  0000 C CNN
+F 1 "D_Schottky" H 4500 4850 50  0000 C CNN
+F 2 "" H 4500 4950 50  0001 C CNN
+F 3 "" H 4500 4950 50  0001 C CNN
+	1    4500 4950
 	0    1    1    0   
 $EndComp
 $Comp
 L D_Schottky D?
 U 1 1 5B222D2C
-P 5100 4950
-F 0 "D?" H 5100 5050 50  0000 C CNN
-F 1 "D_Schottky" H 5100 4850 50  0000 C CNN
-F 2 "" H 5100 4950 50  0001 C CNN
-F 3 "" H 5100 4950 50  0001 C CNN
-	1    5100 4950
+P 5050 4950
+F 0 "D?" H 5050 5050 50  0000 C CNN
+F 1 "D_Schottky" H 5050 4850 50  0000 C CNN
+F 2 "" H 5050 4950 50  0001 C CNN
+F 3 "" H 5050 4950 50  0001 C CNN
+	1    5050 4950
 	0    1    1    0   
 $EndComp
-Wire Wire Line
-	1000 5450 5100 5450
-Wire Wire Line
-	5100 5450 5100 5100
-Wire Wire Line
-	4550 5100 4550 5450
-Connection ~ 4550 5450
-Wire Wire Line
-	4050 5100 4050 5450
-Connection ~ 4050 5450
-Wire Wire Line
-	3250 3250 6400 3250
 $Comp
 L R R?
 U 1 1 5B222F6F
@@ -254,6 +220,32 @@ F 3 "" H 2800 4600 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
+	1300 3050 1500 3050
+Wire Wire Line
+	1700 3050 6400 3050
+Connection ~ 2050 3050
+Wire Wire Line
+	1250 3750 1450 3750
+Wire Wire Line
+	1750 3750 4800 3750
+Wire Wire Line
+	4800 3750 4800 3450
+Wire Wire Line
+	4800 3450 6400 3450
+Wire Wire Line
+	1100 4350 1400 4350
+Wire Wire Line
+	3250 4350 3250 3250
+Wire Wire Line
+	1600 4350 3250 4350
+Wire Wire Line
+	2400 3800 2400 3750
+Connection ~ 2400 3750
+Wire Wire Line
+	1000 5450 5050 5450
+Wire Wire Line
+	3250 3250 6400 3250
+Wire Wire Line
 	2800 4350 2800 4450
 Connection ~ 2800 4350
 Wire Wire Line
@@ -265,4 +257,75 @@ Connection ~ 2400 5450
 Wire Wire Line
 	2050 3350 2050 5450
 Connection ~ 2050 5450
+Wire Wire Line
+	1100 2200 5050 2200
+Wire Wire Line
+	5050 2200 5050 2550
+Wire Wire Line
+	4500 2550 4500 2200
+Connection ~ 4500 2200
+Wire Wire Line
+	4100 2550 4100 2200
+Connection ~ 4100 2200
+Wire Wire Line
+	4100 2850 4100 4800
+Connection ~ 4100 3050
+Wire Wire Line
+	4500 2850 4500 4800
+Connection ~ 4500 3250
+Wire Wire Line
+	5050 2850 5050 4800
+Connection ~ 5050 3450
+Wire Wire Line
+	4100 5100 4100 5450
+Connection ~ 4100 5450
+Wire Wire Line
+	4500 5450 4500 5100
+Connection ~ 4500 5450
+Wire Wire Line
+	5050 5450 5050 5100
+Text HLabel 5000 6050 0    60   Input ~ 0
+SPI_DRDY
+Wire Bus Line
+	5000 6050 6250 6050
+Entry Wire Line
+	6250 6050 6350 5950
+Entry Wire Line
+	6150 6050 6250 5950
+Entry Wire Line
+	6050 6050 6150 5950
+Entry Wire Line
+	5950 6050 6050 5950
+Entry Wire Line
+	5850 6050 5950 5950
+Wire Wire Line
+	6350 5950 6350 4350
+Wire Wire Line
+	6350 4350 6400 4350
+Wire Wire Line
+	6400 4250 6250 4250
+Wire Wire Line
+	6250 4250 6250 5950
+Wire Wire Line
+	6400 4150 6150 4150
+Wire Wire Line
+	6150 4150 6150 5950
+Wire Wire Line
+	6400 4050 6050 4050
+Wire Wire Line
+	6050 4050 6050 5950
+Wire Wire Line
+	6400 3950 5950 3950
+Wire Wire Line
+	5950 3950 5950 5950
+Text Label 6350 5500 1    60   ~ 0
+~DRDY1
+Text Label 6250 5200 1    60   ~ 0
+~DRDY2
+Text Label 6150 5500 1    60   ~ 0
+~DRDY3
+Text Label 6050 5100 1    60   ~ 0
+~DRDY4
+Text Label 5950 5500 1    60   ~ 0
+~DRDY5
 $EndSCHEMATC
