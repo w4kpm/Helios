@@ -59,7 +59,7 @@
       (place J1 178000 -64000 front 0 (PN Conn_01x10))
     )
     (component "Connector_FFC-FPC:REVHirose_FH12-26S-0.5SH_1x26-1MP_P0.50mm_Horizontal"
-      (place J2 172000 -70000 back 270 (PN LCD))
+      (place J2 171410 -74180 back 270 (PN LCD))
     )
   )
   (library

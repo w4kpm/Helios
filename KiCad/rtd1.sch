@@ -38,7 +38,7 @@ EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 10 14
+Sheet 14 14
 Title ""
 Date ""
 Rev ""
@@ -88,7 +88,7 @@ U 1 1 5B2C4F14
 P 3250 3650
 F 0 "R8" V 3330 3650 50  0000 C CNN
 F 1 "430 .1%" V 3250 3650 50  0000 C CNN
-F 2 "Capacitors_SMD:C_1206_HandSoldering" V 3180 3650 50  0001 C CNN
+F 2 "Resistors_SMD:R_1206_HandSoldering" V 3180 3650 50  0001 C CNN
 F 3 "" H 3250 3650 50  0001 C CNN
 	1    3250 3650
 	1    0    0    -1  
