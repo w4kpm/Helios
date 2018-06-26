@@ -34,32 +34,32 @@
   )
   (placement
     (component Capacitors_SMD:CP_Elec_6.3x5.3
-      (place C1 170000 -94050 back 180 (PN 100uF))
+      (place C1 172200 -51600 back 180 (PN 100uF))
     )
     (component "Capacitors_Tantalum_SMD:CP_Tantalum_Case-A_EIA-3216-18_Hand"
-      (place C2 170800 -84700 back 180 (PN 4.7u))
-      (place C3 170800 -87900 back 180 (PN 4.7u))
+      (place C2 170400 -86700 back 180 (PN 4.7u))
+      (place C3 170700 -90700 back 180 (PN 4.7u))
     )
     (component Capacitors_SMD:C_1206_HandSoldering
-      (place C4 177000 -94000 back 90 (PN .1u))
+      (place C4 170600 -96300 back 180 (PN .1u))
     )
     (component LEDs:LED_0805_HandSoldering
-      (place D1 171000 -42000 front 0 (PN LED))
-      (place D2 171000 -45000 front 0 (PN LED))
+      (place D1 170700 -104000 front 90 (PN LED))
+      (place D2 174400 -103900 front 90 (PN LED))
     )
     (component Resistors_SMD:R_1206_HandSoldering
-      (place R1 178000 -44000 front 90 (PN 300))
-      (place R2 166400 -44150 front 270 (PN 300))
-      (place R3 171000 -51000 back 180 (PN 680k))
+      (place R1 178600 -103400 front 90 (PN 300))
+      (place R2 166300 -103500 front 270 (PN 300))
+      (place R3 171400 -59500 back 180 (PN 680k))
     )
     (component "Power_Integrations:TO-220"
-      (place U1 171000 -102000 back 180 (PN L7812))
+      (place U1 172000 -42200 back 180 (PN L7812))
     )
     (component Pin_Headers:Pin_Header_Straight_1x10_Pitch2.54mm
-      (place J1 178000 -64000 front 0 (PN Conn_01x10))
+      (place J1 178300 -88400 front 180 (PN Conn_01x10))
     )
     (component "Connector_FFC-FPC:REVHirose_FH12-26S-0.5SH_1x26-1MP_P0.50mm_Horizontal"
-      (place J2 171410 -74180 back 270 (PN LCD))
+      (place J2 171400 -76000 back 270 (PN LCD))
     )
   )
   (library
