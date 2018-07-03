@@ -410,7 +410,6 @@ void init_spi()
 
 
 
-
 static const ADCConversionGroup adcgrpcfg1 = {
   FALSE,
   ADC_GRP1_NUM_CHANNELS,
@@ -429,7 +428,6 @@ static const ADCConversionGroup adcgrpcfg1 = {
     0
   }
 };
-
 
 
 static const ADCConversionGroup adcgrpcfg2 = {
@@ -725,6 +723,14 @@ static THD_FUNCTION(Thread4, arg) {
 
     }
 
+
+void adcSTM32EnableTSVREFE(void) {
+
+  ADC12_COMMON->CCR |= ADC12_CCR_VREFEN;
+  ADC34_COMMON->CCR |= ADC34_CCR_VREFEN;
+}
+
+
 int main(void) {
   unsigned i;
 
@@ -737,12 +743,7 @@ int main(void) {
    */
   halInit();
   chSysInit();
-
-void adcSTM32EnableTSVREFE(void) {
-
-  ADC12_COMMON->CCR |= ADC12_CCR_VREFEN;
-  ADC34_COMMON->CCR |= ADC34_CCR_VREFEN;
-}
+ 
 
   
   palSetPad(GPIOB, 5);
@@ -750,13 +751,15 @@ void adcSTM32EnableTSVREFE(void) {
   wdgReset(&WDGD1);
   chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
   adcStart(&ADCD1, NULL);
+  adcStart(&ADCD4, NULL);
+  // I think this needs to go after the start - even though it worked fine before
 
+  // I had a problem in another context
   adcSTM32EnableTSVREFE();
-
   adcSTM32EnableTS(&ADCD1);
   
 
-  adcStart(&ADCD4, NULL);
+
 
   /*
    * SPI1 I/O pins setup.
@@ -862,7 +865,7 @@ void adcSTM32EnableTSVREFE(void) {
 
 	  
 	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
-	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
+	  adcConvert(t&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 	  chThdSleepMilliseconds(250);
 	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
 	  
