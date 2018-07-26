@@ -38,8 +38,9 @@ static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 
 static char text[255];
-static uint8_t vbuf[32][128];
 static uint8_t vbuf2[32][128];
+static uint8_t vbuf[32][128];
+
 
 static uint8_t oled_current_row;
 static uint8_t oled_current_column;
@@ -59,13 +60,13 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 }
 
 
-#define CS 15
-#define RST 14
+#define CS 11
+#define RST 12
 #define SPISELECT 11
 #define CK 13
 #define MISO 14
 #define MOSI 15
-#define DC 8
+#define DC 14
 
 
 
@@ -104,14 +105,14 @@ void led_write0(location)
 
 void write_oled_command(char data)
 {
-    palClearPad(GPIOE,DC);
+    palClearPad(GPIOB,DC);
     led_write0(data);
 }
 
 
 void write_oled_data(char data)
 {
-    palSetPad(GPIOE,DC);
+    palSetPad(GPIOB,DC);
     led_write0(data);
 }
 
@@ -310,7 +311,6 @@ void graphics_init()
 
   clear_oled();
   //shade_oled(0x55);
-  oled_draw_string(0,0,"X");
   oled_draw_string(0,0,"Helios ");
 
 
@@ -342,14 +342,15 @@ static THD_FUNCTION(Thread2, arg) {
   spiSelect(&SPID2);
 
   while (TRUE) {
-      //      write_oled_command(0x15); // Set_Column_Address
+      //write_oled_command(0x15); // Set_Column_Address
       //write_oled_command(0x00);
       //write_oled_command(0x7f);
 
       //write_oled_command(0x75); // Set_Row_Address
       //write_oled_command(0x00);
       //write_oled_command(0x1f);
-      palSetPad(GPIOE,DC);
+
+      palSetPad(GPIOB,DC);
 
       spiSend(&SPID2,128*32,&vbuf);
       //spiSend(&SPID2,128*32,&vbuf2);
@@ -394,13 +395,13 @@ void spi_read(location)
 
 void init_spi()
 {
-  palSetPadMode(GPIOE, CS, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOE, RST, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOE, DC, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOB, CS, PAL_MODE_OUTPUT_PUSHPULL);
+  //  palSetPadMode(GPIOB, RST, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOB, DC, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, SPISELECT, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPad(GPIOB,CS);
-  palSetPad(GPIOE,RST);
-  palClearPad(GPIOB,CK);
+  //  palSetPad(GPIOB,RST);
+  //  palSetPad(GPIOB,CK);
   palClearPad(GPIOB,SPISELECT);
 
 }
@@ -422,7 +423,7 @@ static const ADCConversionGroup adcgrpcfg1 = {
     ADC_SMPR2_SMP_AN16(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5)
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
-    ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18),
+      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18), //
     0,
     0,
     0
@@ -439,12 +440,12 @@ static const ADCConversionGroup adcgrpcfg2 = {
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
 
-      ADC_SMPR1_SMP_AN7(ADC_SMPR_SMP_601P5)|ADC_SMPR1_SMP_AN3(ADC_SMPR_SMP_601P5),
-        ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN12(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
+      ADC_SMPR1_SMP_AN3(ADC_SMPR_SMP_601P5),
+        ADC_SMPR2_SMP_AN10(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN13(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
-      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN7) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ4_N(ADC_CHANNEL_IN11), // solar,ext temp, internal reference, wind
-    ADC_SQR2_SQ5_N(ADC_CHANNEL_IN3),
+      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN13) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN10)|ADC_SQR1_SQ4_N(ADC_CHANNEL_IN3), // snow, internal reference, wind, solar (opamp)
+      0,
     0,
     0
   }
@@ -765,15 +766,18 @@ int main(void) {
    * SPI1 I/O pins setup.
    */
 
-  palSetPadMode(GPIOD, 8, PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_ANALOG);
+  //  palSetPadMode(GPIOD, 8, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 9, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 11, PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOD, 14, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 13, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOB, 12, PAL_MODE_INPUT_ANALOG);
   
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7));
 
-  palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));    
+  palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
+  //palSetPadMode(GPIOA, 2, PAL_MODE_OUTPUT_PUSHPULL);
+  //palSetPadMode(GPIOA, 3, PAL_MODE_OUTPUT_PUSHPULL);    
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 
 
@@ -783,6 +787,7 @@ int main(void) {
   palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  
   palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
@@ -797,15 +802,14 @@ int main(void) {
   //palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   //palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   //palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
-  //palClearPad(GPIOA,4);
-
-  my_address = my_address | palReadPad(GPIOB,8);
+ 
+ my_address = my_address | palReadPad(GPIOB,8);
   my_address = my_address | (palReadPad(GPIOB,9)<<1);
 
   
   sdStart(&SD1, &uartCfg);
   sdStart(&SD2, &uartCfg2);
-    // chprintf((BaseSequentialStream*)&SD2,"Hello World 2\r\n");
+  //chprintf((BaseSequentialStream*)&SD2,"Hello World 2\r\n");
   chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d\r\n",my_address);
   //palSetPadMode(GPIOB, 8, PAL_MODE_OUTPUT_PUSHPULL); 
 
@@ -819,17 +823,19 @@ int main(void) {
   chprintf((BaseSequentialStream*)&SD1,"SPI init\r\n");
   init_oled();
   chprintf((BaseSequentialStream*)&SD1,"OLED init\r\n");
-  graphics_init();
+  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
-    
+  graphics_init();
+  chThdSleepMilliseconds(1000);
+
 
 
   //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-  chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
+
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
-  chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
+  //chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloB\r\n")  ;
-  chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
+  //chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloC\r\n")  ;
   ////chThdCreateStatic(waThread5, sizeof(waThread5), NORMALPRIO, Thread5, NULL);
 
@@ -848,83 +854,83 @@ int main(void) {
 #define RTD_B -5.775e-7
 
 
+  //Default OPAMP4 CSR 10880000
   
   OPAMP4->CSR = 0X8041;
-  chThdSleepMilliseconds(250);
-  chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
+  
+  //chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
 
 
 
 
-  while (TRUE)
+    while (TRUE)
       {
-	  wdgReset(&WDGD1);
+  	  wdgReset(&WDGD1);
 	  step = (step +1)%255;
-
-
 
 	  
 	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
-	  adcConvert(t&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
-	  chThdSleepMilliseconds(250);
+	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
+	  chThdSleepMilliseconds(100);
 	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
 	  
 	  chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
 	  chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d \r\n",samples2[0],samples2[1],samples2[2],samples2[3]);
-	  float resistance = (2048.0/samples2[1]) * 10000.0;
-	  // see http://www.giangrandi.ch/electronics/ntc/ntc.shtml
-	  float outsidetemp = (1.0/((log(resistance/10000.0)/4200.0)+1/298.15))-273.15;
+
+
 	  
-	  chprintf((BaseSequentialStream*)&SD1,"Resistance %f %f\r\n",resistance,outsidetemp);
-	  VDD = 3.3 * (*(uint16_t*)0x1FFFF7BA) / (samples2[2] * 1.0);
-	  irradiance = calc_volts(VDD,samples2[0])/.0002;
-	  irradiance2 = calc_volts(VDD,samples2[4])/(8*.0002);
-	  //outsideTemp = calc_rtemp(VDD,samples2[1]);
-	  chprintf((BaseSequentialStream*)&SD1,"OpAmp Mult %.2f\r\n",calc_volts(VDD,samples2[4])/calc_volts(VDD,samples2[0]));
-	  
+
+	  VDD = 3.3 * (*(uint16_t*)0x1FFFF7BA) / (samples2[1] * 1.0);
+
+	  irradiance2 = calc_volts(VDD,samples2[3])/(8*.0002);
+
+	  //chprintf((BaseSequentialStream*)&SD1,"OpAmp Mult %.2f\r\n",calc_volts(VDD,samples2[3])/calc_volts(VDD,samples2[0]));
 
 	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
-	  chThdSleepMilliseconds(250);
+
 	  internalTemp = calc_temp(VDD,samples1[0]);
-	  chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d \r\n",samples1[0],samples1[1]);
+	  //chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d \r\n",samples1[0],samples1[1]);
 
 	  //internalTemp = calc_temp(VDD,samples1[0]);
-	  float amps = (calc_volts(VDD,samples2[3])/120.0);
+	  float amps = (calc_volts(VDD,samples2[2])/120.0);
 	  float windspeed = (amps-0.004)*(50.0/.016);
-	  float opamp4 = calc_volts(VDD,samples2[4]);
+	  float opamp4 = calc_volts(VDD,samples2[3]);
 	  
 	  if (windspeed < 0.5)
 	      windspeed = 0;
-          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f : %.2f,  inside: %.2f outside: %.2f,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance,irradiance2,internalTemp,outsidetemp,VDD,amps,windspeed*2.237);
+          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance2,internalTemp,VDD,amps,windspeed*2.237);
 	  spi_write(0x80,0xd0); // three wire
 	  spi_read(0x0);
 	  chprintf((BaseSequentialStream*)&SD1,"spi: %x %x %x\r\n",rxbuf[0],rxbuf[1],rxbuf[2]);
 	  lsb = rxbuf[2];
 	  hsb = rxbuf[1];
 	  result = (hsb << 8) + lsb;
-	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
 	  result = (result*430.0) / 32768.0;
 	  
-	  chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+	  //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
 	  z1 = -RTD_A;
 	  z2 = RTD_A * RTD_A - (4 * RTD_B);
 	  z3 = (4 * RTD_B) / 100.0;
 	  z4 = 2 * RTD_B;
 	  pt100temp = z2 + (z3 * result);
 	  pt100temp = (sqrt(pt100temp) + z1) / z4;
-	  chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
+	  //chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
 
 
 	  //chThdSleepMilliseconds(250);
 	  //palSetPad(GPIOB, 5);
+
 	  //shade_oled(step);
-	  sprintf(text,"%.1f %.0f ",pt100temp,irradiance2-6.0);
+	  //sprintf(text,"%.1f %.0f ",pt100temp,irradiance2-6.0);
+	  clear_oled();
+	  sprintf(text,"hello %d",step);
 	  oled_draw_big_string(0,0,text);
-	  //oled_draw_string(0,1,"012345678901234567890");
+	  //oled_draw_string(0,0,"012345678901234567890");
 	  //chThdSleepMilliseconds(500);
 
 	  //palClearPad(GPIOB, 5);
-   }
+       }
 
 
 
