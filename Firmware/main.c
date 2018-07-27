@@ -472,8 +472,10 @@ static const WDGConfig wdgcfg = {
 //static uint8_t vbuf2[64][128];
 
 static mailbox_t RxMbx;
+static mailbox_t RxMbx2;
 #define MAILBOX_SIZE 25
 static msg_t RxMbxBuff[MAILBOX_SIZE];
+static msg_t RxMbxBuff2[MAILBOX_SIZE];
 static char current_key;
 static  uint16_t step =0;
 static  int16_t deg,speed =0;
@@ -579,10 +581,10 @@ static THD_FUNCTION(Thread3, arg) {
 	  
 	  b = sdGetTimeout(&SD2,TIME_MS2I(2));
 
-	  
+
 	  if ((b!= Q_TIMEOUT) && (rx_queue_pos < 31))
 	      {
-		  //chprintf((BaseSequentialStream*)&SD1,"got char: %x\r\n",b);
+		  chprintf((BaseSequentialStream*)&SD1,"got char: %x\r\n",b);
 		  rx_text[rx_queue_num][rx_queue_pos++]=b;
 	      }
 	  if ((b == Q_TIMEOUT) && (rx_queue_pos > 0))
@@ -591,6 +593,7 @@ static THD_FUNCTION(Thread3, arg) {
 		  rx_text[rx_queue_num][rx_queue_pos] = 0;
 
 		  chMBPostTimeout(&RxMbx,(rx_queue_num<<8)|rx_queue_pos,TIME_INFINITE); // let our mailbox know
+		  chMBPostTimeout(&RxMbx2,(rx_queue_num<<8)|rx_queue_pos,TIME_INFINITE); // let our mailbox know
 		  rx_queue_pos = 0;
 		  // we have a new entry
 		  rx_queue_num = (++rx_queue_num)%32;
@@ -678,7 +681,8 @@ static THD_FUNCTION(Thread4, arg) {
 		{
 		    
 		    command = lcltext[1];		
-		    palSetPad(GPIOA,4);
+		    palSetPad(GPIOA,1);
+		    palSetPad(GPIOE,0);
 		    //chprintf((BaseSequentialStream*)&SD1,"+");
 		    if (command == 4)
 			{
@@ -713,7 +717,8 @@ static THD_FUNCTION(Thread4, arg) {
 		    }
 
 		    chThdSleepMilliseconds(2);
-		    palClearPad(GPIOA,4);
+		    palClearPad(GPIOA,1);
+		    palClearPad(GPIOE,0);
 		    //chThdSleepMilliseconds(1);
 		    //chprintf((BaseSequentialStream*)&SD1,"-");
 		    //hprintf(&SD1,lcltext);
@@ -723,6 +728,20 @@ static THD_FUNCTION(Thread4, arg) {
 	}
 
     }
+
+static THD_WORKING_AREA(waThread5, 512);
+static THD_FUNCTION(Thread5, arg) {
+    msg_t rxRow;
+    while (TRUE)
+	{
+	    // the skip is because the way I have it hooked up right now
+	    // causes it to read whatever we send.
+	    chMBFetchTimeout(&RxMbx2,&rxRow,TIME_INFINITE);
+	    palSetPad(GPIOE,1);
+	    chThdSleepMilliseconds(5);
+	    palClearPad(GPIOE,1);
+	}
+}
 
 
 void adcSTM32EnableTSVREFE(void) {
@@ -751,6 +770,7 @@ int main(void) {
   wdgStart(&WDGD1, &wdgcfg);
   wdgReset(&WDGD1);
   chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
+  chMBObjectInit(&RxMbx2,&RxMbxBuff2,MAILBOX_SIZE);
   adcStart(&ADCD1, NULL);
   adcStart(&ADCD4, NULL);
   // I think this needs to go after the start - even though it worked fine before
@@ -776,14 +796,17 @@ int main(void) {
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7));
 
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
-  //palSetPadMode(GPIOA, 2, PAL_MODE_OUTPUT_PUSHPULL);
-  //palSetPadMode(GPIOA, 3, PAL_MODE_OUTPUT_PUSHPULL);    
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 
 
+  palSetPadMode(GPIOE, 0, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOE, 1, PAL_MODE_OUTPUT_PUSHPULL);    
+
+
+  
   // Temp SPI
   //  palSetPadMode(GPIOA, 4, PAL_MODE_ALTERNATE(5));
-  palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOA, 1, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
@@ -813,7 +836,9 @@ int main(void) {
   chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d\r\n",my_address);
   //palSetPadMode(GPIOB, 8, PAL_MODE_OUTPUT_PUSHPULL); 
 
-  //palClearPad(GPIOB, 8);     /* Green.  */
+  palClearPad(GPIOA, 1);     // Recieve Enable RS485
+  palClearPad(GPIOE, 0);     // Disable TX Light
+  palClearPad(GPIOE, 1);     // Disable RX Light
 
 
 
@@ -833,13 +858,12 @@ int main(void) {
   //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
-  //chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
+  chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloB\r\n")  ;
-  //chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
+  chThdCreateStatic(waThread4, sizeof(waThread4), NORMALPRIO, Thread4, NULL);
   chprintf((BaseSequentialStream*)&SD1,"HelloC\r\n")  ;
-  ////chThdCreateStatic(waThread5, sizeof(waThread5), NORMALPRIO, Thread5, NULL);
-
-  ////chThdCreateStatic(waThread6, sizeof(waThread6), NORMALPRIO, Thread6, NULL);  
+  chThdCreateStatic(waThread5, sizeof(waThread5), NORMALPRIO, Thread5, NULL);
+;  
   uint32_t x,y;
   float VDD;
   float outsideTemp;
@@ -928,7 +952,11 @@ int main(void) {
 	  oled_draw_big_string(0,0,text);
 	  //oled_draw_string(0,0,"012345678901234567890");
 	  //chThdSleepMilliseconds(500);
-
+	  //	  palSetPad(GPIOA,1);
+	  //chprintf((BaseSequentialStream*)&SD2,".");
+	  //chThdSleepMilliseconds(2);
+	  //palClearPad(GPIOA,1);
+	  //chThdSleepMilliseconds(250);
 	  //palClearPad(GPIOB, 5);
        }
 
