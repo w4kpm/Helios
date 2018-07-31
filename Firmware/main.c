@@ -60,7 +60,7 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 }
 
 
-#define CS 11
+
 #define RST 12
 #define SPISELECT 11
 #define CK 13
@@ -73,8 +73,8 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 static const SPIConfig std_spicfg0 = {
   NULL,
   NULL,
-  GPIOA,                                                        /*port of CS  */
-  4,                                                /*pin of CS   */
+  GPIOC,                                                        /*port of CS  */
+  5,                                                /*pin of CS   */
 
   0,
   SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0                    /*CR2 register*/
@@ -134,6 +134,7 @@ void set_oled_text_pos(uint8_t x,uint8_t y)
     oled_current_column = (x*6+2);
     oled_current_row = (y*16);
 }
+
 
 
 void write_oled_char(char a)
@@ -368,40 +369,39 @@ static THD_FUNCTION(Thread2, arg) {
 
 
 
-void spi_write(location,data)
+void spi_write(location,data,cp)
 {
-  spiStart(&SPID1,&std_spicfg0);
-  spiSelect(&SPID1);
-  txbuf[0] = location;
-  txbuf[1] = data;
-  spiSend(&SPID1,2,&txbuf);
-
-  
-  spiUnselect(&SPID1);
-  spiStop(&SPID1);
+    palClearPad(GPIOC,cp);
+    spiStart(&SPID3,&std_spicfg0);
+    spiSelect(&SPID3);
+    txbuf[0] = location;
+    txbuf[1] = data;
+    spiSend(&SPID3,2,&txbuf);
+    spiUnselect(&SPID3);
+    spiStop(&SPID3);
+    palSetPad(GPIOC,cp);
 }
 
-void spi_read(location)
+void spi_read(location,cp)
 {
-  spiStart(&SPID1,&std_spicfg0);
-  spiSelect(&SPID1);
-  txbuf[0] = location;
-  spiSend(&SPID1,1,&txbuf);
-  spiReceive(&SPID1,3,&rxbuf);
-  spiUnselect(&SPID1);
-  spiStop(&SPID1);
+    palClearPad(GPIOC,cp);
+    spiStart(&SPID3,&std_spicfg0);
+    spiSelect(&SPID3);
+    txbuf[0] = location;
+    spiSend(&SPID3,1,&txbuf);
+    spiReceive(&SPID3,3,&rxbuf);
+    spiUnselect(&SPID3);
+    spiStop(&SPID3);
+    palSetPad(GPIOC,cp);
 }
 
 
 void init_spi()
 {
-  palSetPadMode(GPIOB, CS, PAL_MODE_OUTPUT_PUSHPULL);
+
   //  palSetPadMode(GPIOB, RST, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, DC, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, SPISELECT, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPad(GPIOB,CS);
-  //  palSetPad(GPIOB,RST);
-  //  palSetPad(GPIOB,CK);
   palClearPad(GPIOB,SPISELECT);
 
 }
@@ -514,7 +514,7 @@ dbg(char *string)
  */
 
 
-/* *******************
+/* ******************
 stolen from http://www.modbustools.com/modbus.html#crc
 */
 uint16_t CRC16 (const char *nData, uint16_t wLength)
@@ -750,6 +750,37 @@ void adcSTM32EnableTSVREFE(void) {
   ADC34_COMMON->CCR |= ADC34_CCR_VREFEN;
 }
 
+#define RTD_A 3.9083e-3
+#define RTD_B -5.775e-7
+
+float get_temp(device){
+    float pt100temp;
+    uint8_t lsb,hsb;
+    float result;
+    float z1,z2,z3,z4;
+
+    spi_write(0x80,0xd0,device); // three wire
+    spi_read(0x0,device);
+
+    lsb = rxbuf[2];
+    hsb = rxbuf[1];
+    result = (hsb << 8) + lsb;
+    //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+    result = (result*430.0) / 32768.0;
+	  
+    //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+    z1 = -RTD_A;
+    z2 = RTD_A * RTD_A - (4 * RTD_B);
+    z3 = (4 * RTD_B) / 100.0;
+    z4 = 2 * RTD_B;
+    pt100temp = z2 + (z3 * result);
+    pt100temp = (sqrt(pt100temp) + z1) / z4;
+    //chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
+    chprintf((BaseSequentialStream*)&SD1,"spi%d: %x %x %x,%.2f\r\n",device,rxbuf[0],rxbuf[1],rxbuf[2],pt100temp);
+    return pt100temp;
+}
+
+
 
 int main(void) {
   unsigned i;
@@ -772,7 +803,7 @@ int main(void) {
   chMBObjectInit(&RxMbx,&RxMbxBuff,MAILBOX_SIZE);
   chMBObjectInit(&RxMbx2,&RxMbxBuff2,MAILBOX_SIZE);
   adcStart(&ADCD1, NULL);
-  adcStart(&ADCD4, NULL);
+  //  adcStart(&ADCD4, NULL);
   // I think this needs to go after the start - even though it worked fine before
 
   // I had a problem in another context
@@ -806,12 +837,26 @@ int main(void) {
   
   // Temp SPI
   //  palSetPadMode(GPIOA, 4, PAL_MODE_ALTERNATE(5));
-  palSetPadMode(GPIOA, 1, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
-  palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
-  palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOA, 1, PAL_MODE_OUTPUT_PUSHPULL); // tx/rx
+
+  palSetPadMode(GPIOC, 0, PAL_MODE_OUTPUT_PUSHPULL); // rtd 0
+  palSetPadMode(GPIOC, 1, PAL_MODE_OUTPUT_PUSHPULL); // rtd 1
+  palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_PUSHPULL); // rtd 2
+  palSetPadMode(GPIOC, 3, PAL_MODE_OUTPUT_PUSHPULL); // rtd 3 
+  palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL); // rtd 4
+  palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL); // common line
+  palSetPad(GPIOC,0);
+  palSetPad(GPIOC,1);
+  palSetPad(GPIOC,2);
+  palSetPad(GPIOC,3);
+  palSetPad(GPIOC,4);
+  palSetPad(GPIOC,5);
   
-  palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)); // SPI3 
+  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6));
+  palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6));
+  
+  palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);                      // spi2
   palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
 
@@ -826,7 +871,7 @@ int main(void) {
   //palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   //palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
  
- my_address = my_address | palReadPad(GPIOB,8);
+  my_address = my_address | palReadPad(GPIOB,8);
   my_address = my_address | (palReadPad(GPIOB,9)<<1);
 
   
@@ -870,13 +915,8 @@ int main(void) {
   float internalTemp;
   float irradiance;
   float irradiance2;
-  uint8_t lsb,hsb;
-  float result;
-  float z1,z2,z3,z4;
-  float pt100temp;
-#define RTD_A 3.9083e-3
-#define RTD_B -5.775e-7
-
+  float pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5;
+  float amps,windspeed,opamp4,snow;
 
   //Default OPAMP4 CSR 10880000
   
@@ -894,8 +934,10 @@ int main(void) {
 
 	  
 	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
+	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 	  chThdSleepMilliseconds(100);
+	  adcStop(&ADCD4);
 	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
 	  
 	  chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
@@ -916,32 +958,21 @@ int main(void) {
 	  //chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d \r\n",samples1[0],samples1[1]);
 
 	  //internalTemp = calc_temp(VDD,samples1[0]);
-	  float amps = (calc_volts(VDD,samples2[2])/120.0);
-	  float windspeed = (amps-0.004)*(50.0/.016);
-	  float opamp4 = calc_volts(VDD,samples2[3]);
-	  
+	  amps = (calc_volts(VDD,samples2[2])/120.0);
+	  windspeed = (amps-0.004)*(50.0/.016);
+	  opamp4 = calc_volts(VDD,samples2[3]);
+	  snow = calc_volts(VDD,samples2[0]);
 	  if (windspeed < 0.5)
 	      windspeed = 0;
-          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  \r\n",irradiance2,internalTemp,VDD,amps,windspeed*2.237);
-	  spi_write(0x80,0xd0); // three wire
-	  spi_read(0x0);
-	  chprintf((BaseSequentialStream*)&SD1,"spi: %x %x %x\r\n",rxbuf[0],rxbuf[1],rxbuf[2]);
-	  lsb = rxbuf[2];
-	  hsb = rxbuf[1];
-	  result = (hsb << 8) + lsb;
-	  //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
-	  result = (result*430.0) / 32768.0;
+          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance2,internalTemp,VDD,amps,windspeed*2.237,snow);
 	  
-	  //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
-	  z1 = -RTD_A;
-	  z2 = RTD_A * RTD_A - (4 * RTD_B);
-	  z3 = (4 * RTD_B) / 100.0;
-	  z4 = 2 * RTD_B;
-	  pt100temp = z2 + (z3 * result);
-	  pt100temp = (sqrt(pt100temp) + z1) / z4;
-	  //chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
-
-
+	  pt100temp1 = get_temp(0);
+	  pt100temp2 = get_temp(1);
+	  pt100temp3 = get_temp(2);
+	  pt100temp4 = get_temp(3);
+	  pt100temp5 = get_temp(4);
+				      
+          chprintf((BaseSequentialStream*)&SD1,"t1: %.2f,  t2: %.2f, t3: %.2f t4: %.2f t5 %.2f \r\n",pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5);
 	  //chThdSleepMilliseconds(250);
 	  //palSetPad(GPIOB, 5);
 
