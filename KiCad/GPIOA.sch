@@ -109,10 +109,6 @@ F4 "RX" I R 1850 5400 60
 F5 "RS485B(+)" O L 850 5150 60 
 F6 "RS485A(-)" O L 850 5300 60 
 $EndSheet
-Text HLabel 5400 5200 2    60   Input ~ 0
-485TX
-Text HLabel 5400 5350 2    60   Input ~ 0
-485RX
 Text HLabel 5400 5600 2    60   Input ~ 0
 RX485_A(-)
 Text HLabel 5400 5800 2    60   Input ~ 0
@@ -178,12 +174,6 @@ Wire Wire Line
 	550  5150 550  6250
 Wire Wire Line
 	850  5150 550  5150
-Wire Wire Line
-	1950 5350 5400 5350
-Wire Wire Line
-	2000 5200 5400 5200
-Connection ~ 1950 5350
-Connection ~ 2000 5200
 Wire Wire Line
 	1950 5400 1850 5400
 Wire Wire Line
