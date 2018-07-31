@@ -256,5 +256,5 @@ Text GLabel 6800 1750 1    60   Input ~ 0
 Text GLabel 7000 1750 1    60   Input ~ 0
 RTD_SCK
 Text GLabel 7200 1750 1    60   Input ~ 0
-RTD_MISO
+RTD_MOSI
 $EndSCHEMATC
