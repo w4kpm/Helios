@@ -59,49 +59,6 @@ F 3 "" H 5450 3650 50  0000 C CNN
 	5    5450 3650
 	-1   0    0    1   
 $EndComp
-$Comp
-L Conn_01x16 J11
-U 1 1 5B2E2F42
-P 2700 3750
-F 0 "J11" H 2700 4550 50  0000 C CNN
-F 1 "Conn_01x16" H 2700 2850 50  0000 C CNN
-F 2 "Pin_Headers:Pin_Header_Straight_2x08_Pitch2.54mm" H 2700 3750 50  0001 C CNN
-F 3 "" H 2700 3750 50  0001 C CNN
-	1    2700 3750
-	-1   0    0    1   
-$EndComp
-Wire Wire Line
-	3850 4450 2900 4450
-Wire Wire Line
-	3850 4350 2900 4350
-Wire Wire Line
-	3850 4250 2900 4250
-Wire Wire Line
-	3850 4150 2900 4150
-Wire Wire Line
-	3850 4050 2900 4050
-Wire Wire Line
-	3850 3950 2900 3950
-Wire Wire Line
-	3850 3850 2900 3850
-Wire Wire Line
-	3850 3750 2900 3750
-Wire Wire Line
-	3850 3650 2900 3650
-Wire Wire Line
-	3850 3550 2900 3550
-Wire Wire Line
-	3850 3450 2900 3450
-Wire Wire Line
-	3850 3350 2900 3350
-Wire Wire Line
-	3850 3250 2900 3250
-Wire Wire Line
-	3850 3150 2900 3150
-Wire Wire Line
-	3850 3050 2900 3050
-Wire Wire Line
-	3850 2950 2900 2950
 Text HLabel 2100 5300 0    60   Input ~ 0
 485TX
 Text HLabel 2100 5550 0    60   Input ~ 0
@@ -109,11 +66,27 @@ Text HLabel 2100 5550 0    60   Input ~ 0
 Wire Wire Line
 	2100 5300 3100 5300
 Wire Wire Line
-	3100 5300 3100 4450
-Connection ~ 3100 4450
-Wire Wire Line
 	2100 5550 3400 5550
 Wire Wire Line
-	3400 5550 3400 4350
-Connection ~ 3400 4350
+	3400 5550 3400 4450
+Wire Wire Line
+	3400 4450 3850 4450
+Wire Wire Line
+	3100 5300 3100 4350
+Wire Wire Line
+	3100 4350 3850 4350
+NoConn ~ 3850 2950
+NoConn ~ 3850 3050
+NoConn ~ 3850 3150
+NoConn ~ 3850 3250
+NoConn ~ 3850 3350
+NoConn ~ 3850 3450
+NoConn ~ 3850 3550
+NoConn ~ 3850 3650
+NoConn ~ 3850 3750
+NoConn ~ 3850 3850
+NoConn ~ 3850 3950
+NoConn ~ 3850 4050
+NoConn ~ 3850 4150
+NoConn ~ 3850 4250
 $EndSCHEMATC

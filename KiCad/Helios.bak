@@ -518,4 +518,12 @@ F 3 "" H 10000 2700 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	9750 2700 10000 2700
+Text GLabel 10000 2150 2    60   Input ~ 0
+Rain
+Text GLabel 10050 3250 2    60   Input ~ 0
+Aux
+Wire Wire Line
+	9750 3250 10050 3250
+Wire Wire Line
+	9750 2150 10000 2150
 $EndSCHEMATC
