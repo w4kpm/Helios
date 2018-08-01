@@ -7,4 +7,4 @@ mv Helios-F.SilkS.gbr Helios.GTO
 mv Helios-B.SilkS.gbr Helios.GBO
 mv Helios-Edge.Cuts.gbr Helios.GML
 mv Helios.drl Helios.TXT
-zip HeliosZip.zip Helios.*
+zip HeliosCompiled.zip Helios.*
