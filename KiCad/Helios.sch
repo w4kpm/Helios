@@ -315,11 +315,11 @@ Text GLabel 9100 5350 0    60   Input ~ 0
 RTD-3
 Text GLabel 8950 5450 0    60   Input ~ 0
 RTD-4
-Text GLabel 9200 900  1    60   Input ~ 0
+Text GLabel 10000 2350 2    60   Input ~ 0
 RTDa5
-Text GLabel 9050 900  1    60   Input ~ 0
+Text GLabel 10000 2900 2    60   Input ~ 0
 RTDb5
-Text GLabel 8900 900  1    60   Input ~ 0
+Text GLabel 10050 3450 2    60   Input ~ 0
 RTD-5
 $Sheet
 S 4400 3500 750  550 
@@ -438,18 +438,6 @@ Wire Wire Line
 Wire Wire Line
 	8950 5450 9550 5450
 Wire Wire Line
-	9200 900  9200 1250
-Wire Wire Line
-	9200 1250 9450 1250
-Wire Wire Line
-	9050 900  9050 1350
-Wire Wire Line
-	9050 1350 9450 1350
-Wire Wire Line
-	8900 900  8900 1450
-Wire Wire Line
-	8900 1450 9450 1450
-Wire Wire Line
 	6950 1200 6950 1350
 Connection ~ 6950 1350
 Wire Wire Line
@@ -460,4 +448,82 @@ Wire Wire Line
 	2150 5450 2450 5450
 Wire Wire Line
 	2450 5450 2450 2450
+$Comp
+L GS3 J?
+U 1 1 5B60ADA6
+P 9600 3350
+F 0 "J?" H 9650 3550 50  0000 C CNN
+F 1 "GS3" H 9650 3151 50  0000 C CNN
+F 2 "Connectors:GS3" V 9688 3276 50  0001 C CNN
+F 3 "" H 9600 3350 50  0001 C CNN
+	1    9600 3350
+	-1   0    0    1   
+$EndComp
+$Comp
+L GS3 J?
+U 1 1 5B60B13C
+P 9600 2800
+F 0 "J?" H 9650 3000 50  0000 C CNN
+F 1 "GS3" H 9650 2601 50  0000 C CNN
+F 2 "Connectors:GS3" V 9688 2726 50  0001 C CNN
+F 3 "" H 9600 2800 50  0001 C CNN
+	1    9600 2800
+	-1   0    0    1   
+$EndComp
+$Comp
+L GS3 J?
+U 1 1 5B60B1C3
+P 9600 2250
+F 0 "J?" H 9650 2450 50  0000 C CNN
+F 1 "GS3" H 9650 2051 50  0000 C CNN
+F 2 "Connectors:GS3" V 9688 2176 50  0001 C CNN
+F 3 "" H 9600 2250 50  0001 C CNN
+	1    9600 2250
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	9750 2350 10000 2350
+Wire Wire Line
+	9750 2900 10000 2900
+Wire Wire Line
+	9750 3450 10050 3450
+Wire Wire Line
+	9450 2250 9250 2250
+Wire Wire Line
+	9250 2250 9250 1250
+Wire Wire Line
+	9250 1250 9450 1250
+Wire Wire Line
+	9200 1350 9200 2800
+Wire Wire Line
+	9200 1350 9450 1350
+Wire Wire Line
+	9450 3350 9100 3350
+Wire Wire Line
+	9100 3350 9100 1450
+Wire Wire Line
+	9100 1450 9450 1450
+Wire Wire Line
+	9200 2800 9450 2800
+$Comp
+L GND #PWR?
+U 1 1 5B60C11B
+P 10000 2700
+F 0 "#PWR?" H 10000 2450 50  0001 C CNN
+F 1 "GND" H 10000 2550 50  0000 C CNN
+F 2 "" H 10000 2700 50  0001 C CNN
+F 3 "" H 10000 2700 50  0001 C CNN
+	1    10000 2700
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	9750 2700 10000 2700
+Text GLabel 10000 2150 2    60   Input ~ 0
+Rain
+Text GLabel 10050 3250 2    60   Input ~ 0
+Aux
+Wire Wire Line
+	9750 3250 10050 3250
+Wire Wire Line
+	9750 2150 10000 2150
 $EndSCHEMATC

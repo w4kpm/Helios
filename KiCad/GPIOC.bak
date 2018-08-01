@@ -64,8 +64,6 @@ NoConn ~ 5900 1400
 NoConn ~ 5900 1500
 NoConn ~ 5900 1900
 NoConn ~ 5900 2000
-NoConn ~ 5900 2100
-NoConn ~ 5900 2200
 NoConn ~ 5900 2300
 Text GLabel 3600 1600 0    60   Input ~ 0
 RTD_MOSI
@@ -99,4 +97,12 @@ Wire Wire Line
 	5900 2700 5200 2700
 Wire Wire Line
 	5900 2800 5700 2800
+Text GLabel 4300 2200 0    60   Input ~ 0
+Rain
+Text GLabel 4600 2100 0    60   Input ~ 0
+Aux
+Wire Wire Line
+	5900 2200 4300 2200
+Wire Wire Line
+	5900 2100 4600 2100
 $EndSCHEMATC

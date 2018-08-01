@@ -102,4 +102,18 @@ Wire Wire Line
 	3850 3050 2900 3050
 Wire Wire Line
 	3850 2950 2900 2950
+Text HLabel 2100 5300 0    60   Input ~ 0
+485TX
+Text HLabel 2100 5550 0    60   Input ~ 0
+485RX
+Wire Wire Line
+	2100 5300 3100 5300
+Wire Wire Line
+	3100 5300 3100 4450
+Connection ~ 3100 4450
+Wire Wire Line
+	2100 5550 3400 5550
+Wire Wire Line
+	3400 5550 3400 4350
+Connection ~ 3400 4350
 $EndSCHEMATC

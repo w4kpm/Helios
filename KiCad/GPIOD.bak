@@ -299,7 +299,6 @@ NoConn ~ 6400 3750
 NoConn ~ 6400 3650
 NoConn ~ 6400 3550
 NoConn ~ 6400 3350
-NoConn ~ 6400 3150
 NoConn ~ 6400 2950
 NoConn ~ 6400 2850
 Text GLabel 6350 5250 3    60   Input ~ 0
@@ -322,4 +321,9 @@ Wire Wire Line
 	6050 4050 6050 4750
 Wire Wire Line
 	5950 3950 5950 5250
+Wire Wire Line
+	6400 3150 6200 3150
+Wire Wire Line
+	6200 3150 6200 3250
+Connection ~ 6200 3250
 $EndSCHEMATC
