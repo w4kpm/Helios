@@ -38,14 +38,21 @@ static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 
 static char text[255];
+static char metrics[8][12];
 static uint8_t vbuf2[32][128];
 static uint8_t vbuf[32][128];
 
+static  float irradiance;
+static  float irradiance2;
+static  float irradiance3;
+static  int displaymetric;
+static  float pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5;
+static  float amps,windspeed,windspeedout,opamp4,snow,snowoutput;
 
 static uint8_t oled_current_row;
 static uint8_t oled_current_column;
 
-#define ADC_GRP1_NUM_CHANNELS   2
+#define ADC_GRP1_NUM_CHANNELS   3
 #define ADC_GRP2_NUM_CHANNELS   5
 #define ADC_GRP1_BUF_DEPTH      1
 #define ADC_GRP2_BUF_DEPTH      1
@@ -178,7 +185,7 @@ void write_big_oled_char(char a)
 
     for (i=0; i<12; i++)
     {
-	vbuf[oled_current_row+j][oled_current_column+i] = fontbig[a][j][i];
+	vbuf[(oled_current_row+j)][(oled_current_column+i)] = fontbig[a][j][i];
     }
   }}
 
@@ -286,7 +293,7 @@ void init_oled()
 
 void clear_oled()
 {
-    memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
+    //memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
 
     memset(&vbuf,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
                                // because the LCD would 'freak out' if lots
@@ -336,6 +343,9 @@ static THD_FUNCTION(Thread2, arg) {
   int pass = 0;
   int cleared;
   uint32_t cksum;
+  int x,y;
+  uint8_t pixel;
+  uint8_t pixel2;
   chRegSetThreadName("ScreenRefresh");
 
   chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
@@ -343,22 +353,17 @@ static THD_FUNCTION(Thread2, arg) {
   spiSelect(&SPID2);
 
   while (TRUE) {
-      //write_oled_command(0x15); // Set_Column_Address
-      //write_oled_command(0x00);
-      //write_oled_command(0x7f);
-
-      //write_oled_command(0x75); // Set_Row_Address
-      //write_oled_command(0x00);
-      //write_oled_command(0x1f);
-
+      // reverse pixels and then rotate entire display
+      // before writing to LCD
+      for (x=0;x<32;x++)
+	  for (y=0;y<128;y++){
+	      pixel2 = (vbuf[x][y]&0xF0)>>4;
+	      pixel = (vbuf[x][y]&0x0F)<<4;
+	      vbuf2[31-x][128-y] = pixel|pixel2;	  
+      }
       palSetPad(GPIOB,DC);
-
-      spiSend(&SPID2,128*32,&vbuf);
-      //spiSend(&SPID2,128*32,&vbuf2);
-      
+      spiSend(&SPID2,128*32,&vbuf2);      
       chThdSleepMilliseconds(1);
-      //spiUnselect(&SPID2);
-      //spiStop(&SPID2);
     
   }
 
@@ -419,11 +424,11 @@ static const ADCConversionGroup adcgrpcfg1 = {
   ADC_CFGR_CONT,            /* CFGR    */
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
-    0,
+      ADC_SMPR1_SMP_AN1(ADC_SMPR_SMP_601P5),
     ADC_SMPR2_SMP_AN16(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5)
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
-      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18), //
+      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18)|ADC_SQR1_SQ3_N(ADC_CHANNEL_IN1), //
     0,
     0,
     0
@@ -663,7 +668,7 @@ static THD_FUNCTION(Thread4, arg) {
     msg_t response;
     uint8_t skip_next;
     uint16_t reg;
-    uint16_t value;
+    int16_t value;
     while (TRUE)
 	{
 	    // the skip is because the way I have it hooked up right now
@@ -687,11 +692,36 @@ static THD_FUNCTION(Thread4, arg) {
 		    if (command == 4)
 			{
 			    reg = (lcltext[2]<<8)|lcltext[3];
-			    value = step;
-			    if (reg==1)
-				value = deg;
-			    if (reg==2)
-				value = speed;
+
+			    switch (reg) {
+			    case 1:
+				value = irradiance3*10.0;
+				break;
+			    case 2:
+				value = windspeed*10.0;
+				break;
+			    case 3:
+				value = pt100temp1*10.0;
+				break;
+			    case 4:
+				value = pt100temp2*10.0;
+				break;
+			    case 5:
+				value = pt100temp3*10.0;
+				break;
+			    case 6:
+				value = pt100temp4*10.0;
+				break;
+			    case 7:
+				value = pt100temp5*10.0;
+				break;
+			    case 8:
+				value = snowoutput;
+				break;
+
+			    default:
+				value = step;
+			    }
 			    lcltext[0] = my_address;
 			    lcltext[1] = 4;
 			    lcltext[2] = 2;
@@ -765,21 +795,23 @@ float get_temp(device){
     lsb = rxbuf[2];
     hsb = rxbuf[1];
     result = (hsb << 8) + lsb;
-    //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
-    result = (result*430.0) / 32768.0;
-	  
-    //chprintf((BaseSequentialStream*)&SD1,"r: %.2f\r\n",result);
+    result = (result*430.0) / 32768.0;	  
     z1 = -RTD_A;
     z2 = RTD_A * RTD_A - (4 * RTD_B);
     z3 = (4 * RTD_B) / 100.0;
     z4 = 2 * RTD_B;
     pt100temp = z2 + (z3 * result);
     pt100temp = (sqrt(pt100temp) + z1) / z4;
-    //chprintf((BaseSequentialStream*)&SD1,"t: %.2f\r\n",pt100temp);
-    chprintf((BaseSequentialStream*)&SD1,"spi%d: %x %x %x,%.2f\r\n",device,rxbuf[0],rxbuf[1],rxbuf[2],pt100temp);
     return pt100temp;
 }
 
+
+void fillTemp(char* metric,float temp,int temp_num){
+    if (abs(temp) >100)
+	sprintf(metric,"Temp%d: N/C",temp_num);
+    else
+	sprintf(metric,"Temp%d:%3.0fc",temp_num,temp);	    
+}
 
 
 int main(void) {
@@ -817,7 +849,7 @@ int main(void) {
    * SPI1 I/O pins setup.
    */
 
-  //  palSetPadMode(GPIOD, 8, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 9, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 11, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 13, PAL_MODE_INPUT_ANALOG);
@@ -836,7 +868,7 @@ int main(void) {
 
   
   // Temp SPI
-  //  palSetPadMode(GPIOA, 4, PAL_MODE_ALTERNATE(5));
+
   palSetPadMode(GPIOA, 1, PAL_MODE_OUTPUT_PUSHPULL); // tx/rx
 
   palSetPadMode(GPIOC, 0, PAL_MODE_OUTPUT_PUSHPULL); // rtd 0
@@ -866,10 +898,6 @@ int main(void) {
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
   
-  //palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
-  //palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
-  //palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
-  //palSetPadMode(GPIOA, 7, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
  
   my_address = my_address | palReadPad(GPIOB,8);
   my_address = my_address | (palReadPad(GPIOB,9)<<1);
@@ -877,9 +905,8 @@ int main(void) {
   
   sdStart(&SD1, &uartCfg);
   sdStart(&SD2, &uartCfg2);
-  //chprintf((BaseSequentialStream*)&SD2,"Hello World 2\r\n");
+
   chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d\r\n",my_address);
-  //palSetPadMode(GPIOB, 8, PAL_MODE_OUTPUT_PUSHPULL); 
 
   palClearPad(GPIOA, 1);     // Recieve Enable RS485
   palClearPad(GPIOE, 0);     // Disable TX Light
@@ -913,10 +940,6 @@ int main(void) {
   float VDD;
   float outsideTemp;
   float internalTemp;
-  float irradiance;
-  float irradiance2;
-  float pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5;
-  float amps,windspeed,opamp4,snow;
 
   //Default OPAMP4 CSR 10880000
   
@@ -924,16 +947,14 @@ int main(void) {
   
   //chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
 
-
+  irradiance3 = 0;
 
 
     while (TRUE)
       {
   	  wdgReset(&WDGD1);
 	  step = (step +1)%255;
-
-	  
-	  //chprintf((BaseSequentialStream*)&SD1,"RefV %d \r\n",*(uint16_t*)0x1FFFF7BA);
+	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 	  chThdSleepMilliseconds(100);
@@ -950,45 +971,59 @@ int main(void) {
 
 	  irradiance2 = calc_volts(VDD,samples2[3])/(8*.0002);
 
-	  //chprintf((BaseSequentialStream*)&SD1,"OpAmp Mult %.2f\r\n",calc_volts(VDD,samples2[3])/calc_volts(VDD,samples2[0]));
-
 	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
 
 	  internalTemp = calc_temp(VDD,samples1[0]);
-	  //chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d \r\n",samples1[0],samples1[1]);
+	  chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d %d\r\n",samples1[0],samples1[1],samples1[2]);
 
-	  //internalTemp = calc_temp(VDD,samples1[0]);
+
+	  irradiance = calc_volts(VDD,samples1[2]);
+	  if (irradiance < .01)
+	      irradiance = 0;
+	  else
+	      irradiance = irradiance2;
+	  irradiance3 = irradiance3*.9 + irradiance*.1;    
 	  amps = (calc_volts(VDD,samples2[2])/120.0);
 	  windspeed = (amps-0.004)*(50.0/.016);
 	  opamp4 = calc_volts(VDD,samples2[3]);
 	  snow = calc_volts(VDD,samples2[0]);
 	  if (windspeed < 0.5)
 	      windspeed = 0;
-          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f,  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance2,internalTemp,VDD,amps,windspeed*2.237,snow);
+	  else
+	      windspeed = windspeed*2.237;
+	  windspeedout = windspeed;
+          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance3,internalTemp,VDD,amps,windspeed,snow);
 	  
 	  pt100temp1 = get_temp(0);
 	  pt100temp2 = get_temp(1);
 	  pt100temp3 = get_temp(2);
 	  pt100temp4 = get_temp(3);
 	  pt100temp5 = get_temp(4);
-				      
-          chprintf((BaseSequentialStream*)&SD1,"t1: %.2f,  t2: %.2f, t3: %.2f t4: %.2f t5 %.2f \r\n",pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5);
-	  //chThdSleepMilliseconds(250);
-	  //palSetPad(GPIOB, 5);
-
-	  //shade_oled(step);
-	  //sprintf(text,"%.1f %.0f ",pt100temp,irradiance2-6.0);
+	  sprintf(metrics[0],"Irr: %5.0f",irradiance3);
+	  if (amps < 0.003)
+	      sprintf(metrics[1],"Wind:  N/C");
+	  else
+	      sprintf(metrics[1],"Wind: %4.0f",windspeed);
+	  fillTemp(metrics[2],pt100temp1,1);
+	  fillTemp(metrics[3],pt100temp2,2);
+	  fillTemp(metrics[4],pt100temp3,3);
+	  fillTemp(metrics[5],pt100temp4,4);
+	  fillTemp(metrics[6],pt100temp5,5);
+	  if (snow < .05){
+	      snowoutput = 2;
+	      sprintf(metrics[7], "Snow:  N/C");
+	  }
+	  else if (snow < 1.2){
+	      snowoutput = 1;	     
+	      sprintf(metrics[7], "Snow: True");
+	  }
+	  else{
+	      snowoutput = 0;
+	      sprintf(metrics[7], "Snow:False");
+	  }
+	  displaymetric = step/32;
 	  clear_oled();
-	  sprintf(text,"hello %d",step);
-	  oled_draw_big_string(0,0,text);
-	  //oled_draw_string(0,0,"012345678901234567890");
-	  //chThdSleepMilliseconds(500);
-	  //	  palSetPad(GPIOA,1);
-	  //chprintf((BaseSequentialStream*)&SD2,".");
-	  //chThdSleepMilliseconds(2);
-	  //palClearPad(GPIOA,1);
-	  //chThdSleepMilliseconds(250);
-	  //palClearPad(GPIOB, 5);
+	  oled_draw_big_string(0,0,metrics[displaymetric]);
        }
 
 
