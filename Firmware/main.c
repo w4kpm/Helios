@@ -36,6 +36,9 @@
 #include "fontbig.h"
 static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
+static uint8_t my_address=0x10;
+static uint8_t baud_rate;
+static uint8_t reset =1;
 
 static char text[255];
 static char metrics[8][12];
@@ -52,7 +55,11 @@ static  float amps,windspeed,windspeedout,opamp4,snow,snowoutput;
 static uint8_t oled_current_row;
 static uint8_t oled_current_column;
 
-#define ADC_GRP1_NUM_CHANNELS   3
+
+//static uint16_t *flash = 0x803F000;
+
+
+#define ADC_GRP1_NUM_CHANNELS   3 
 #define ADC_GRP2_NUM_CHANNELS   5
 #define ADC_GRP1_BUF_DEPTH      1
 #define ADC_GRP2_BUF_DEPTH      1
@@ -316,13 +323,52 @@ void graphics_init()
   uint8_t row;
   uint8_t col;
 
-
   clear_oled();
   //shade_oled(0x55);
   oled_draw_string(0,0,"Helios ");
+  if (baud_rate == 1)
+      sprintf(text,"id=%d    baud=19200 ",my_address );
+  else
+      sprintf(text,"id=%d    baud=9600 ",my_address);
+  oled_draw_string(0,1,text);
+
+}
+
+void unlock_flash()
+{
+    if (FLASH->CR & FLASH_CR_LOCK){
+	FLASH->KEYR = 0x45670123;
+	FLASH->KEYR = 0xCDEF89AB;
+    }
 
 
 }
+
+
+void erase_flash()
+{
+    int x;
+    unlock_flash();
+    FLASH->SR |= 0x20;
+    FLASH->CR |= FLASH_CR_PER;
+    //    FLASH->AR = flash;
+    FLASH->CR |= FLASH_CR_STRT;
+    FLASH->SR |= 0x20;
+    
+}
+
+
+void write_flash(uint16_t value)
+{
+    int x;
+    erase_flash();
+    chThdSleepMilliseconds(2);
+    FLASH->CR = FLASH_CR_PG;
+    
+    //*flash = value;
+    
+}
+
 
 uint32_t checksum()
 {
@@ -349,8 +395,6 @@ static THD_FUNCTION(Thread2, arg) {
   chRegSetThreadName("ScreenRefresh");
 
   chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
-  //spiStart(&SPID2,&std_spicfg3);
-  //spiSelect(&SPID2);
 
   while (TRUE) {
       // reverse pixels and then rotate entire display
@@ -413,6 +457,7 @@ void init_spi()
   palSetPadMode(GPIOB, DC, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, SPISELECT, PAL_MODE_OUTPUT_PUSHPULL);
   palClearPad(GPIOB,SPISELECT);
+  //palSetPad(GPIOB,RST);
 
 }
 
@@ -493,7 +538,6 @@ static  int16_t deg,speed =0;
 static char rx_text[32][32];
 static int rx_queue_pos=0;
 static int rx_queue_num=0;
-static uint8_t my_address = 0x10;
 static SerialConfig uartCfg =
 {
     115200,// bit rate
@@ -506,6 +550,14 @@ static SerialConfig uartCfg =
 static SerialConfig uartCfg2 =
 {
     9600,// bit rate
+    0,
+    0,
+    0,
+};
+
+static SerialConfig uartCfg3 =
+{
+    19200,// bit rate
     0,
     0,
     0,
@@ -818,6 +870,20 @@ void fillTemp(char* metric,float temp,int temp_num){
 	sprintf(metric,"Temp%d:%3.0fc",temp_num,temp);	    
 }
 
+
+void feedWatchdog(){
+    if (!reset)
+	wdgReset(&WDGD1);
+}
+
+
+void restart_modbus(){
+    sdStop(&SD2);
+    if (baud_rate == 1)
+	sdStart(&SD2, &uartCfg3);
+    else
+	sdStart(&SD2, &uartCfg2);
+}
 
 int main(void) {
   unsigned i;
