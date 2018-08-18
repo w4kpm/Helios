@@ -2,7 +2,7 @@ from pymodbus.client.sync import ModbusSerialClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder
-
+import time
 
 
 def readmodbus(modbusid,register,fieldtype,readtype,serialport):
@@ -57,6 +57,7 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport):
     #print(x,validread)
     #if fieldtype in ['sint','slong','int','long']:
     #    print("%X"%x)
+    #time.sleep(.1)
     return x
 
 
@@ -79,13 +80,12 @@ def change_tracker_setpoint(modbusid,serialport,setpoint):
     instrument.close()
 
 
-
-print("Irradiance*10",readmodbus(19,1,'sint',4,'/dev/ttyUSB1'))
-print("Wind *10 ",readmodbus(19,2,'sint',4,'/dev/ttyUSB1'))
-print("Temp1 *10 ",readmodbus(19,3,'sint',4,'/dev/ttyUSB1'))
-print("Temp2 *10 ",readmodbus(19,4,'sint',4,'/dev/ttyUSB1'))
-print("Temp3 *10 ",readmodbus(19,5,'sint',4,'/dev/ttyUSB1'))
-print("Temp4 *10 ",readmodbus(19,6,'sint',4,'/dev/ttyUSB1'))
-print("Temp5 *10 ",readmodbus(19,7,'sint',4,'/dev/ttyUSB1'))
-
-print("Snow ",readmodbus(19,8,'sint',4,'/dev/ttyUSB1'))
+#print("xTemp1 *10 ",readmodbus(10,3,'sint',4,'/dev/ttyUSB1'))
+print("Irradiance*10",readmodbus(60,1,'sint',4,'/dev/ttyUSB1'))
+print("Wind *10 "    ,readmodbus(60,2,'sint',4,'/dev/ttyUSB1'))
+print("Temp1 *10 "   ,readmodbus(60,3,'sint',4,'/dev/ttyUSB1'))
+print("Temp2 *10 "   ,readmodbus(60,4,'sint',4,'/dev/ttyUSB1'))
+print("Temp3 *10 "   ,readmodbus(60,5,'sint',4,'/dev/ttyUSB1'))
+print("Temp4 *10 "   ,readmodbus(60,6,'sint',4,'/dev/ttyUSB1'))
+print("Temp5 *10 "   ,readmodbus(60,7,'sint',4,'/dev/ttyUSB1'))
+print("Snow "        ,readmodbus(60,8,'sint',4,'/dev/ttyUSB1'))
