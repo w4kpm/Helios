@@ -38,7 +38,7 @@ static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 static uint8_t my_address;
 static uint8_t baud_rate;
-static uint8_t reset =1;
+static uint8_t reset =0;
 
 static char text[255];
 static char metrics[8][12];
@@ -494,12 +494,12 @@ static const ADCConversionGroup adcgrpcfg2 = {
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
 
-      ADC_SMPR1_SMP_AN3(ADC_SMPR_SMP_601P5),
-        ADC_SMPR2_SMP_AN10(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN13(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
+      ADC_SMPR1_SMP_AN3(ADC_SMPR_SMP_601P5)|ADC_SMPR1_SMP_AN9(ADC_SMPR_SMP_601P5),
+      ADC_SMPR2_SMP_AN10(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN11(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN13(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5),
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
       ADC_SQR1_SQ1_N(ADC_CHANNEL_IN13) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN10)|ADC_SQR1_SQ4_N(ADC_CHANNEL_IN3), // snow, internal reference, wind, solar (opamp)
-      0,
+      ADC_SQR2_SQ5_N(ADC_CHANNEL_IN9), //solar (no opamp)
     0,
     0
   }
@@ -919,11 +919,15 @@ int main(void) {
    * SPI1 I/O pins setup.
    */
 
-  palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
+
   palSetPadMode(GPIOD, 9, PAL_MODE_INPUT_ANALOG);
   palSetPadMode(GPIOD, 11, PAL_MODE_INPUT_ANALOG);
+  
+ 
+  palSetPadMode(GPIOD, 12, PAL_MODE_INPUT_ANALOG);
+  
   palSetPadMode(GPIOD, 13, PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOB, 12, PAL_MODE_INPUT_ANALOG);
+
   
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7));
@@ -959,6 +963,7 @@ int main(void) {
   palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6));
   
   palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);                      // spi2
+
   palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
   palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
 
@@ -980,8 +985,7 @@ int main(void) {
 
   
   sdStart(&SD1, &uartCfg);
-  sdStart(&SD2, &uartCfg2);
-
+  restart_modbus();
   chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d\r\n",my_address);
 
   palClearPad(GPIOA, 1);     // Recieve Enable RS485
@@ -999,7 +1003,9 @@ int main(void) {
   chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
   graphics_init();
+  feedWatchdog();
   chThdSleepMilliseconds(1000);
+  feedWatchdog();
 
 
 
@@ -1027,17 +1033,21 @@ int main(void) {
 
     while (TRUE)
       {
-  	  wdgReset(&WDGD1);
+	  feedWatchdog();
+
 	  step = (step +1)%255;
 	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
 	  chThdSleepMilliseconds(100);
 	  adcStop(&ADCD4);
+	  feedWatchdog();
+
+
 	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
 	  
 	  chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
-	  chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d \r\n",samples2[0],samples2[1],samples2[2],samples2[3]);
+	  chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d %d\r\n",samples2[0],samples2[1],samples2[2],samples2[3],samples2[4]);
 
 
 	  
@@ -1047,12 +1057,13 @@ int main(void) {
 	  irradiance2 = calc_volts(VDD,samples2[3])/(8*.0002);
 
 	  adcConvert(&ADCD1, &adcgrpcfg1, samples1, ADC_GRP1_BUF_DEPTH);
-
+	  chThdSleepMilliseconds(100);
+	  feedWatchdog();
 	  internalTemp = calc_temp(VDD,samples1[0]);
 	  chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d %d\r\n",samples1[0],samples1[1],samples1[2]);
 
 
-	  irradiance = calc_volts(VDD,samples1[2]);
+	  irradiance = calc_volts(VDD,samples2[4]);
 	  if (irradiance < .01)
 	      irradiance = 0;
 	  else
