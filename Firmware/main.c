@@ -56,10 +56,10 @@ static uint8_t oled_current_row;
 static uint8_t oled_current_column;
 
 
-//static uint16_t *flash = 0x803F000;
+static uint16_t *flash = 0x803F000;
 
 
-#define ADC_GRP1_NUM_CHANNELS   3 
+#define ADC_GRP1_NUM_CHANNELS   2
 #define ADC_GRP2_NUM_CHANNELS   5
 #define ADC_GRP1_BUF_DEPTH      1
 #define ADC_GRP2_BUF_DEPTH      1
@@ -322,7 +322,6 @@ void graphics_init()
 {
   uint8_t row;
   uint8_t col;
-
   clear_oled();
   //shade_oled(0x55);
   oled_draw_string(0,0,"Helios ");
@@ -351,7 +350,7 @@ void erase_flash()
     unlock_flash();
     FLASH->SR |= 0x20;
     FLASH->CR |= FLASH_CR_PER;
-    //    FLASH->AR = flash;
+    FLASH->AR = flash;
     FLASH->CR |= FLASH_CR_STRT;
     FLASH->SR |= 0x20;
     
@@ -365,7 +364,7 @@ void write_flash(uint16_t value)
     chThdSleepMilliseconds(2);
     FLASH->CR = FLASH_CR_PG;
     
-    //*flash = value;
+    *flash = value;
     
 }
 
@@ -413,7 +412,7 @@ static THD_FUNCTION(Thread2, arg) {
       spiStop(&SPID2);
 
       chThdSleepMilliseconds(1);
-    
+
   }
 
   return MSG_OK;
@@ -474,11 +473,11 @@ static const ADCConversionGroup adcgrpcfg1 = {
   ADC_CFGR_CONT,            /* CFGR    */
   ADC_TR(0, 4095),          /* TR1     */
   {                         /* SMPR[2] sample Register */
-      ADC_SMPR1_SMP_AN1(ADC_SMPR_SMP_601P5),
+      0,
     ADC_SMPR2_SMP_AN16(ADC_SMPR_SMP_601P5)|ADC_SMPR2_SMP_AN18(ADC_SMPR_SMP_601P5)
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
-      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18)|ADC_SQR1_SQ3_N(ADC_CHANNEL_IN1), //
+      ADC_SQR1_SQ1_N(ADC_CHANNEL_IN16)|   ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18), //
     0,
     0,
     0
@@ -968,10 +967,16 @@ int main(void) {
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
-  
- 
-  my_address = my_address | palReadPad(GPIOB,8);
-  my_address = my_address | (palReadPad(GPIOB,9)<<1);
+
+  //write_flash((my_address&0xff));
+  if (*flash == 0xffff){
+      my_address = 60; // if flash hasn't been set up yet we default to
+                       // id 60, baud 9600
+      write_flash((my_address&0xff));
+  }
+
+  my_address = (*flash) & 0xff;
+  baud_rate = ((*flash) & 0xff00) >> 8;
 
   
   sdStart(&SD1, &uartCfg);
