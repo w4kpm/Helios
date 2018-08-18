@@ -349,8 +349,8 @@ static THD_FUNCTION(Thread2, arg) {
   chRegSetThreadName("ScreenRefresh");
 
   chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
-  spiStart(&SPID2,&std_spicfg3);
-  spiSelect(&SPID2);
+  //spiStart(&SPID2,&std_spicfg3);
+  //spiSelect(&SPID2);
 
   while (TRUE) {
       // reverse pixels and then rotate entire display
@@ -362,7 +362,12 @@ static THD_FUNCTION(Thread2, arg) {
 	      vbuf2[31-x][128-y] = pixel|pixel2;	  
       }
       palSetPad(GPIOB,DC);
-      spiSend(&SPID2,128*32,&vbuf2);      
+      spiStart(&SPID2,&std_spicfg3);
+      spiSelect(&SPID2);
+      spiSend(&SPID2,128*32,&vbuf2);
+      spiUnselect(&SPID2);
+      spiStop(&SPID2);
+
       chThdSleepMilliseconds(1);
     
   }
