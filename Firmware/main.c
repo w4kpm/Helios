@@ -36,7 +36,7 @@
 #include "fontbig.h"
 static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
-static uint8_t my_address=0x10;
+static uint8_t my_address;
 static uint8_t baud_rate;
 static uint8_t reset =1;
 
@@ -1020,7 +1020,6 @@ int main(void) {
   //Default OPAMP4 CSR 10880000
   
   OPAMP4->CSR = 0X8041;
-  
   //chprintf(&SD1,"Default OPAMP4 CSR %X\r\n",OPAMP4->CSR);
 
   irradiance3 = 0;
@@ -1099,10 +1098,9 @@ int main(void) {
 	  }
 	  displaymetric = step/32;
 	  clear_oled();
+	  chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
 	  oled_draw_big_string(0,0,metrics[displaymetric]);
        }
-
-
 
   return 0;
 }
