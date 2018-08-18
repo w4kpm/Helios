@@ -973,7 +973,7 @@ int main(void) {
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
 
-  //write_flash((my_address&0xff));
+
   if (*flash == 0xffff){
       my_address = 60; // if flash hasn't been set up yet we default to
                        // id 60, baud 9600
