@@ -37,7 +37,9 @@
 static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 static uint8_t my_address;
+static uint8_t save_address;
 static uint8_t baud_rate;
+static uint8_t save_baud_rate;
 static uint8_t reset =0;
 
 static char text[255];
@@ -347,12 +349,24 @@ void unlock_flash()
 void erase_flash()
 {
     int x;
-    unlock_flash();
-    FLASH->SR |= 0x20;
-    FLASH->CR |= FLASH_CR_PER;
-    FLASH->AR = flash;
-    FLASH->CR |= FLASH_CR_STRT;
-    FLASH->SR |= 0x20;
+    unlock_flash();                        // must unlock flash before
+					   // any write operations
+
+    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+                                           // by writing 1
+
+    FLASH->CR |= FLASH_CR_PER;             // set page erase
+    
+    FLASH->AR = flash;                     // set page to flash
+    
+    FLASH->CR |= FLASH_CR_STRT;            // start erasing
+    
+    while ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY); // loop till done
+							// watchdog should
+							// reset if it gets
+							// stuck
+
+
     
 }
 
@@ -361,11 +375,22 @@ void write_flash(uint16_t value)
 {
     int x;
     erase_flash();
-    chThdSleepMilliseconds(2);
-    FLASH->CR = FLASH_CR_PG;
+
+
+    CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
+                                           // clear this prior to writing
     
-    *flash = value;
+    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+                                           // by writing 1
     
+    SET_BIT(FLASH->CR, (FLASH_CR_PG));     // we are already unlocked, trying
+					   // to do it again will mess
+					   // things up
+    
+    *flash = value;                        // actually write the value
+    
+    CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  // probably don't need to to this
+					   // again
 }
 
 
@@ -719,6 +744,8 @@ static THD_FUNCTION(Thread4, arg) {
     int row;
     int col;
     int len;
+    uint16_t error;
+    uint16_t code;
     msg_t rxRow;
     msg_t rxPos;
     msg_t response;
@@ -727,6 +754,7 @@ static THD_FUNCTION(Thread4, arg) {
     int16_t value;
     while (TRUE)
 	{
+	    error = 0;
 	    // the skip is because the way I have it hooked up right now
 	    // causes it to read whatever we send.
 	    chMBFetchTimeout(&RxMbx,&rxRow,TIME_INFINITE);
@@ -737,47 +765,96 @@ static THD_FUNCTION(Thread4, arg) {
 	    // ignore.
 
             if ((lcltext[0] == my_address) &&
-		(*(uint16_t*)(lcltext+rxPos-2) == CRC16(lcltext,rxPos-2)))
-
-		{
+		(*(uint16_t*)(lcltext+rxPos-2) == CRC16(lcltext,rxPos-2))){
 		    
-		    command = lcltext[1];		
-		    palSetPad(GPIOA,1);
-		    palSetPad(GPIOE,0);
-		    //chprintf((BaseSequentialStream*)&SD1,"+");
-		    if (command == 4)
-			{
-			    reg = (lcltext[2]<<8)|lcltext[3];
+		command = lcltext[1];		
+		palSetPad(GPIOA,1);
+		palSetPad(GPIOE,0);
+		//chprintf((BaseSequentialStream*)&SD1,"+");
+		if (command == 6){
+		    reg = (lcltext[2]<<8)|lcltext[3];
+		    switch (reg){
+		    case 1000:
+			save_address = (lcltext[4]<<8)|lcltext[5];
+			chprintf(&SD1,"Hello World - I am now # %d\r\n",save_address);
+		     
+			break;
+		    case 1001:
+			// 1 for 19200 anything else is 9600
+			// throw error if not 0 or 1
+			save_baud_rate = (lcltext[4]<<8)|lcltext[5];
+			chprintf(&SD1,"Hello World - baud_rate # %d\r\n",save_baud_rate);
+			break;
+		    case 1234:
+			// 1 for 19200 anything else is 9600
+			// throw error if not 0 or 1
+			
+			code =  (lcltext[4]<<8)|lcltext[5];
+			if (code==0x1234){
+			    write_flash(((save_baud_rate&0xff)<<8)|(save_address&0xff));
+			    reset = 1;
+			}
+			else
+			    error = 0x04;
+			    
+			break;
 
-			    switch (reg) {
-			    case 1:
-				value = irradiance3*10.0;
-				break;
-			    case 2:
-				value = windspeed*10.0;
-				break;
-			    case 3:
-				value = pt100temp1*10.0;
-				break;
-			    case 4:
-				value = pt100temp2*10.0;
-				break;
-			    case 5:
-				value = pt100temp3*10.0;
-				break;
-			    case 6:
-				value = pt100temp4*10.0;
-				break;
-			    case 7:
-				value = pt100temp5*10.0;
-				break;
-			    case 8:
-				value = snowoutput;
-				break;
+		    default:
+			error = 0x02;
+		    }
+		    if (error==0){
+			// for this command we just repeat the same thing
+			//back to them
+			sdWrite(&SD2,lcltext,8);
+		    }
+		    else{
+			lcltext[0] = my_address;
+			lcltext[1] = 0x86;
+			lcltext[2] = error;
+			*(uint16_t*)(lcltext+3) = CRC16(lcltext,3);
+			lcltext[5] = 0;
+			sdWrite(&SD2,lcltext,5);
+		    }
 
-			    default:
-				value = step;
-			    }
+			
+			
+	
+		}
+		else if (command == 4)
+		    {
+			reg = (lcltext[2]<<8)|lcltext[3];
+
+			switch (reg) {
+			case 1:
+			    value = irradiance3*10.0;
+			    break;
+			case 2:
+			    value = windspeed*10.0;
+			    break;
+			case 3:
+			    value = pt100temp1*10.0;
+			    break;
+			case 4:
+			    value = pt100temp2*10.0;
+			    break;
+			case 5:
+			    value = pt100temp3*10.0;
+			    break;
+			case 6:
+			    value = pt100temp4*10.0;
+			    break;
+			case 7:
+			    value = pt100temp5*10.0;
+			    break;
+			case 8:
+			    value = snowoutput;
+			    break;
+
+			default:
+			    error = 0x02;
+			    value = step;
+			}
+			if (error==0){
 			    lcltext[0] = my_address;
 			    lcltext[1] = 4;
 			    lcltext[2] = 2;
@@ -787,33 +864,44 @@ static THD_FUNCTION(Thread4, arg) {
 			    lcltext[7] = 0;
 			    sdWrite(&SD2,lcltext,7);
 			}
-		    else
-			sdWrite(&SD2,lcltext,rxPos);
-		    //chprintf((BaseSequentialStream*)&SD1,"Queue not empty %X %x %x\r\n",SD3.oqueue.q_counter,SD3.oqueue.q_rdptr,SD3.oqueue.q_wrptr);
-		    //chprintf((BaseSequentialStream*)&SD1,"command %d - register %d, %d\r\n",lcltext[1],reg,value);
-		    // I've been having problems with this - setting it too
-		    // short causes truncated communications back to the
-		    // PLC - I should really find a way to trigger it once the
-		    // call co sdWrite is done.chOQIsEmptyI
+			else{
+			    lcltext[0] = my_address;
+			    lcltext[1] = 0x84;
+			    lcltext[2] = 0x02;
+			    *(uint16_t*)(lcltext+3) = CRC16(lcltext,3);
+			    lcltext[5] = 0;
+			    sdWrite(&SD2,lcltext,5);
+			}
 
-		    while (!(oqIsEmptyI(&(&SD2)->oqueue)))
+				
+		    }
+		else
+		    sdWrite(&SD2,lcltext,rxPos);
+		//chprintf((BaseSequentialStream*)&SD1,"Queue not empty %X %x %x\r\n",SD3.oqueue.q_counter,SD3.oqueue.q_rdptr,SD3.oqueue.q_wrptr);
+		//chprintf((BaseSequentialStream*)&SD1,"command %d - register %d, %d\r\n",lcltext[1],reg,value);
+		// I've been having problems with this - setting it too
+		// short causes truncated communications back to the
+		// PLC - I should really find a way to trigger it once the
+		// call co sdWrite is done.chOQIsEmptyI
+
+		while (!(oqIsEmptyI(&(&SD2)->oqueue)))
 		    {
 			//chprintf((BaseSequentialStream*)&SD1,".");
 		    	chThdSleepMilliseconds(1);
 		    }
 
-		    chThdSleepMilliseconds(2);
-		    palClearPad(GPIOA,1);
-		    palClearPad(GPIOE,0);
-		    //chThdSleepMilliseconds(1);
-		    //chprintf((BaseSequentialStream*)&SD1,"-");
-		    //hprintf(&SD1,lcltext);
-		    //skip_next = 0;
-		}
+		chThdSleepMilliseconds(2);
+		palClearPad(GPIOA,1);
+		palClearPad(GPIOE,0);
+		//chThdSleepMilliseconds(1);
+		//chprintf((BaseSequentialStream*)&SD1,"-");
+		//hprintf(&SD1,lcltext);
+		//skip_next = 0;
+	    }
 
 	}
 
-    }
+}
 
 static THD_WORKING_AREA(waThread5, 512);
 static THD_FUNCTION(Thread5, arg) {
@@ -972,27 +1060,34 @@ int main(void) {
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
-
+  sdStart(&SD1, &uartCfg);
 
   if (*flash == 0xffff){
       my_address = 60; // if flash hasn't been set up yet we default to
                        // id 60, baud 9600
+      baud_rate=0;
+      chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
       write_flash((my_address&0xff));
+      
   }
+  else{
+      // flash has been written - use those values
+      // init saved values in case we only choose to reset
+      // just id or just address later.
+      my_address = (*flash) & 0xff;
+      save_address = my_address;
+      baud_rate = ((*flash) & 0xff00) >> 8;
+      save_baud_rate = baud_rate;
 
-  my_address = (*flash) & 0xff;
-  baud_rate = ((*flash) & 0xff00) >> 8;
+  }
+      
 
-  
-  sdStart(&SD1, &uartCfg);
+
+
   restart_modbus();
-  chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d\r\n",my_address);
-
-  palClearPad(GPIOA, 1);     // Recieve Enable RS485
-  palClearPad(GPIOE, 0);     // Disable TX Light
-  palClearPad(GPIOE, 1);     // Disable RX Light
-
-
+  chprintf((BaseSequentialStream*)&SD1,"Hello World - I am # %d,%d\r\n",my_address,baud_rate);
+  palSetPad(GPIOE, 0);     // Enable TX Light
+  palSetPad(GPIOE, 1);     // Enbale RX Light
 
 
 
@@ -1005,8 +1100,12 @@ int main(void) {
   graphics_init();
   feedWatchdog();
   chThdSleepMilliseconds(1000);
+  palClearPad(GPIOA, 1);     // Recieve Enable RS485
+  palClearPad(GPIOE, 0);     // Disable TX Light
+  palClearPad(GPIOE, 1);     // Disable RX Light
   feedWatchdog();
-
+  chThdSleepMilliseconds(1000);
+  feedWatchdog();
 
 
   //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);

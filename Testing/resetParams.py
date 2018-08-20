@@ -4,12 +4,9 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder
 import time
 
-baud=9600
-station_id = 60
-port = '/dev/ttyUSB0'
 
-def readmodbus(modbusid,register,fieldtype,readtype,serialport):
-    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=baud)
+def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baud)
     instrument.connect()
     
     #print("Reading ModbusID %d register %d"%(modbusid,register)),
@@ -64,31 +61,52 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport):
     return x
 
 
-def change_tracker_setpoint(modbusid,serialport,setpoint):
-    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=9600)
+def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
     builder = BinaryPayloadBuilder(endian=Endian.Big)
 
-    builder.add_16bit_int(setpoint)
+    builder.add_16bit_int(baud_setting)
     payload = builder.build()
-    #print(payload)
-
-    #print(payload[0][0])
-    #print(payload[0][1])
     
     pld = payload[0][1]|(payload[0][0]<<8)
     
     instrument.connect()
-    instrument.write_register(3,pld,unit=modbusid,timeout=.1)
+    instrument.write_register(1001,pld,unit=modbusid,timeout=.1)
+    instrument.close()
+
+def change_station_id(modbusid,serialport,id_setting,current_baudrate):
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
+
+    builder = BinaryPayloadBuilder(endian=Endian.Big)
+
+    builder.add_16bit_int(id_setting)
+    payload = builder.build()
+    
+    pld = payload[0][1]|(payload[0][0]<<8)
+    
+    instrument.connect()
+    instrument.write_register(1000,pld,unit=modbusid,timeout=.1)
     instrument.close()
 
 
-#print("xTemp1 *10 ",readmodbus(10,3,'sint',4,'/dev/ttyUSB1'))
-print("Irradiance*10",readmodbus(station_id,1,'sint',4,port))
-print("Wind *10 "    ,readmodbus(station_id,2,'sint',4,port))
-print("Temp1 *10 "   ,readmodbus(station_id,3,'sint',4,port))
-print("Temp2 *10 "   ,readmodbus(station_id,4,'sint',4,port))
-print("Temp3 *10 "   ,readmodbus(station_id,5,'sint',4,port))
-print("Temp4 *10 "   ,readmodbus(station_id,6,'sint',4,port))
-print("Temp5 *10 "   ,readmodbus(station_id,7,'sint',4,port))
-print("Snow "        ,readmodbus(station_id,8,'sint',4,port))
+def update_station_settings(modbusid,serialport,current_baudrate):
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
+
+    builder = BinaryPayloadBuilder(endian=Endian.Big)
+
+    builder.add_16bit_int(0x1234)
+    payload = builder.build()
+    
+    pld = payload[0][1]|(payload[0][0]<<8)
+    
+    instrument.connect()
+    instrument.write_register(1234,pld,unit=modbusid,timeout=.1)
+    instrument.close()
+
+    
+
+
+change_station_baud(61,'/dev/ttyUSB0',0,19200); # change to 9600
+change_station_id(61,'/dev/ttyUSB0',60,19200);  # change to id = 60
+update_station_settings(61,'/dev/ttyUSB0',19200);  # enable settings and reset
