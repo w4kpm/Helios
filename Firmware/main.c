@@ -1151,6 +1151,7 @@ int main(void) {
   my_address = 60;
 
   baud_rate = 0; //9600
+  save_baud_rate = 0;
   
   //write_flash(1234,flash2);
 
