@@ -43,10 +43,10 @@ static uint8_t save_baud_rate;
 static uint8_t reset =0;
 
 static char text[255];
-static char metrics[8][12];
+static char metrics[9][12];
 static uint8_t vbuf2[32][128];
 static uint8_t vbuf[32][128];
-
+static float rainRate,hourRain,lifetimeRain = 0.0;
 static  float irradiance;
 static  float irradiance2;
 static  float irradiance3;
@@ -58,8 +58,8 @@ static uint8_t oled_current_row;
 static uint8_t oled_current_column;
 
 
-static uint16_t *flash = 0x803F000;
-
+static uint16_t *flash1 = 0x803F000;
+static uint16_t *flash2 = 0x803e800;
 
 #define ADC_GRP1_NUM_CHANNELS   2
 #define ADC_GRP2_NUM_CHANNELS   5
@@ -83,6 +83,11 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 #define MISO 14
 #define MOSI 15
 #define DC 14
+
+
+
+
+
 
 
 
@@ -346,7 +351,7 @@ void unlock_flash()
 }
 
 
-void erase_flash()
+void erase_flash(uint16_t *flash)
 {
     int x;
     unlock_flash();                        // must unlock flash before
@@ -371,10 +376,10 @@ void erase_flash()
 }
 
 
-void write_flash(uint16_t value)
+void write_flash(uint16_t value,uint16_t* flash)
 {
     int x;
-    erase_flash();
+    erase_flash(flash);
 
 
     CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
@@ -393,6 +398,29 @@ void write_flash(uint16_t value)
 					   // again
 }
 
+void write_flash_float(float value,float* flash)
+{
+    int x;
+    erase_flash(flash);
+
+
+    CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
+                                           // clear this prior to writing
+    
+    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+                                           // by writing 1
+    
+    SET_BIT(FLASH->CR, (FLASH_CR_PG));     // we are already unlocked, trying
+					   // to do it again will mess
+					   // things up
+
+    *flash = value;                        // actually write the value
+
+	
+    CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  
+
+}
+
 
 uint32_t checksum()
 {
@@ -407,6 +435,26 @@ uint32_t checksum()
 }
 
 
+
+static THD_WORKING_AREA(waThread1, 128);
+static THD_FUNCTION(Thread1, arg) {
+  (void)arg;
+  int trigger;
+
+  while (TRUE) {
+      trigger = palReadPad(GPIOC,6);
+      if (trigger == 0)
+	  {
+	      hourRain += 0.01;
+	      lifetimeRain += 0.01;
+	      chThdSleepMilliseconds(250); // debounce
+	      while (palReadPad(GPIOC,6)==0)
+		  chThdSleepMilliseconds(10); // wait till clear
+	  }
+      chThdSleepMilliseconds(10); // loop 
+  }
+}
+
 static THD_WORKING_AREA(waThread2, 128);
 static THD_FUNCTION(Thread2, arg) {
   (void)arg;
@@ -414,20 +462,25 @@ static THD_FUNCTION(Thread2, arg) {
   int cleared;
   uint32_t cksum;
   int x,y;
+  int blink;
   uint8_t pixel;
   uint8_t pixel2;
   chRegSetThreadName("ScreenRefresh");
 
   chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
-
+  
   while (TRUE) {
+      blink = palReadPad(GPIOC,6);
       // reverse pixels and then rotate entire display
       // before writing to LCD
       for (x=0;x<32;x++)
 	  for (y=0;y<128;y++){
 	      pixel2 = (vbuf[x][y]&0xF0)>>4;
 	      pixel = (vbuf[x][y]&0x0F)<<4;
-	      vbuf2[31-x][128-y] = pixel|pixel2;	  
+	      if (blink==0)
+		  vbuf2[31-x][128-y] = 0xFF;
+	      else
+		  vbuf2[31-x][128-y] = pixel|pixel2;
       }
       palSetPad(GPIOB,DC);
       spiStart(&SPID2,&std_spicfg3);
@@ -791,7 +844,7 @@ static THD_FUNCTION(Thread4, arg) {
 			
 			code =  (lcltext[4]<<8)|lcltext[5];
 			if (code==0x1234){
-			    write_flash(((save_baud_rate&0xff)<<8)|(save_address&0xff));
+			    write_flash(((save_baud_rate&0xff)<<8)|(save_address&0xff),flash1);
 			    reset = 1;
 			}
 			else
@@ -849,6 +902,13 @@ static THD_FUNCTION(Thread4, arg) {
 			case 8:
 			    value = snowoutput;
 			    break;
+			case 9:
+			    value = rainRate*100;
+			    break;
+			case 10:
+			    value = lifetimeRain*100;
+			    break;
+			    
 
 			default:
 			    error = 0x02;
@@ -914,6 +974,32 @@ static THD_FUNCTION(Thread5, arg) {
 	    palSetPad(GPIOE,1);
 	    chThdSleepMilliseconds(5);
 	    palClearPad(GPIOE,1);
+	}
+}
+
+
+static THD_WORKING_AREA(waThread6, 128);
+static THD_FUNCTION(Thread6, arg) {
+    while (TRUE)
+	{
+	    // the skip is because the way I have it hooked up right now
+	    // causes it to read whatever we send.
+	    rainRate = hourRain * 60.0; // rain rate is inches/hour
+	    hourRain = 0.0;
+	    chThdSleepMilliseconds(1000*60); // sleep for a minute
+	}
+}
+
+
+static THD_WORKING_AREA(waThread7, 128);
+static THD_FUNCTION(Thread7, arg) {
+    while (TRUE)
+	{
+	    // the skip is because the way I have it hooked up right now
+	    // causes it to read whatever we send.
+	    if (lifetimeRain != *flash2)
+		write_flash_float(lifetimeRain,flash2);
+	    chThdSleepMilliseconds(1000*60*60); // sleep for an hour
 	}
 }
 
@@ -1038,13 +1124,15 @@ int main(void) {
   palSetPadMode(GPIOC, 2, PAL_MODE_OUTPUT_PUSHPULL); // rtd 2
   palSetPadMode(GPIOC, 3, PAL_MODE_OUTPUT_PUSHPULL); // rtd 3 
   palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL); // rtd 4
-  palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL); // common line
+  //palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL); // common line
+  palSetPadMode(GPIOC, 6, PAL_MODE_INPUT_PULLUP); // raingauge
+  palSetPadMode(GPIOC, 7, PAL_MODE_INPUT_PULLUP); // rain enabled
   palSetPad(GPIOC,0);
   palSetPad(GPIOC,1);
   palSetPad(GPIOC,2);
   palSetPad(GPIOC,3);
   palSetPad(GPIOC,4);
-  palSetPad(GPIOC,5);
+  //palSetPad(GPIOC,5);
   
   palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)); // SPI3 
   palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6));
@@ -1060,28 +1148,40 @@ int main(void) {
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
-  sdStart(&SD1, &uartCfg);
+  my_address = 60;
 
-  if (*flash == 0xffff){
-      my_address = 60; // if flash hasn't been set up yet we default to
-                       // id 60, baud 9600
-      baud_rate=0;
-      chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
-      write_flash((my_address&0xff));
-      
-  }
-  else{
-      // flash has been written - use those values
-      // init saved values in case we only choose to reset
-      // just id or just address later.
-      my_address = (*flash) & 0xff;
-      save_address = my_address;
-      baud_rate = ((*flash) & 0xff00) >> 8;
-      save_baud_rate = baud_rate;
+  baud_rate = 0; //9600
+  
+  //write_flash(1234,flash2);
 
-  }
-      
+  //if (*flash2 == 0xffff)
+  //    {
+  //	  write_flash(lifetimeRain*100,flash2);
+  //    }
+  // else
+  //lifetimeRain = *flash2/100.0;
 
+
+//  if (*flash1 == 0xffff){
+//      my_address = 60; // if flash hasn't been set up yet we default to
+//                       // id 60, baud 9600
+//      baud_rate=0;
+//      chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
+//      write_flash((my_address&0xff),flash1);
+//      
+//  }
+//  else{
+//      // flash has been written - use those values
+//      // init saved values in case we only choose to reset
+//      // just id or just address later.
+//      my_address = (*flash1) & 0xff;
+//      save_address = my_address;
+//      baud_rate = ((*flash1) & 0xff00) >> 8;
+//      save_baud_rate = baud_rate;
+//
+//  }
+//      
+//
 
 
   restart_modbus();
@@ -1108,7 +1208,9 @@ int main(void) {
   feedWatchdog();
 
 
-  //  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  //chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  //chThdCreateStatic(waThread6, sizeof(waThread6), NORMALPRIO, Thread6, NULL);
+  //chThdCreateStatic(waThread7, sizeof(waThread7), NORMALPRIO, Thread7, NULL);
 
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
   chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
@@ -1134,7 +1236,7 @@ int main(void) {
       {
 	  feedWatchdog();
 
-	  step = (step +1)%255;
+	  step = (step +1)%256;
 	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
@@ -1193,7 +1295,10 @@ int main(void) {
 	  fillTemp(metrics[3],pt100temp2,2);
 	  fillTemp(metrics[4],pt100temp3,3);
 	  fillTemp(metrics[5],pt100temp4,4);
-	  fillTemp(metrics[6],pt100temp5,5);
+	  if (palReadPad(GPIOC,7) == 0)
+	      sprintf(metrics[6],"Rain: %4.2f",rainRate);
+	  else
+	      fillTemp(metrics[6],pt100temp5,5);
 	  if (snow < .05){
 	      snowoutput = 2;
 	      sprintf(metrics[7], "Snow:  N/C");
@@ -1206,6 +1311,7 @@ int main(void) {
 	      snowoutput = 0;
 	      sprintf(metrics[7], "Snow:False");
 	  }
+
 	  displaymetric = step/32;
 	  clear_oled();
 	  chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
