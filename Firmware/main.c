@@ -398,28 +398,6 @@ void write_flash(uint16_t value,uint16_t* flash)
 					   // again
 }
 
-void write_flash_float(float value,float* flash)
-{
-    int x;
-    erase_flash(flash);
-
-
-    CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
-                                           // clear this prior to writing
-    
-    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
-                                           // by writing 1
-    
-    SET_BIT(FLASH->CR, (FLASH_CR_PG));     // we are already unlocked, trying
-					   // to do it again will mess
-					   // things up
-
-    *flash = value;                        // actually write the value
-
-	
-    CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  
-
-}
 
 
 uint32_t checksum()
@@ -993,13 +971,17 @@ static THD_FUNCTION(Thread6, arg) {
 
 static THD_WORKING_AREA(waThread7, 128);
 static THD_FUNCTION(Thread7, arg) {
+    uint16_t currentvalue;
+    uint16_t savedvalue;
     while (TRUE)
 	{
 	    // the skip is because the way I have it hooked up right now
 	    // causes it to read whatever we send.
-	    if (lifetimeRain != *flash2)
-		write_flash_float(lifetimeRain,flash2);
-	    chThdSleepMilliseconds(1000*60*60); // sleep for an hour
+	    savedvalue = *flash2;
+	    currentvalue = lifetimeRain*100;
+	    if (currentvalue != savedvalue)
+		write_flash(lifetimeRain*100,flash2);
+	    chThdSleepMilliseconds(1000*60); // sleep for an hour
 	}
 }
 
@@ -1102,6 +1084,7 @@ int main(void) {
   
   palSetPadMode(GPIOD, 13, PAL_MODE_INPUT_ANALOG);
 
+
   
   palSetPadMode(GPIOB, 6, PAL_MODE_ALTERNATE(7));    
   palSetPadMode(GPIOB, 7, PAL_MODE_ALTERNATE(7));
@@ -1148,41 +1131,39 @@ int main(void) {
   palSetPadMode(GPIOB, 5, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOB, 8, PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 9, PAL_MODE_INPUT_PULLUP);
-  my_address = 60;
+  sdStart(&SD1,&uartCfg);
 
-  baud_rate = 0; //9600
-  save_baud_rate = 0;
   
-  //write_flash(1234,flash2);
+  //write_flash(0,flash2); Reset counter
 
-  //if (*flash2 == 0xffff)
-  //    {
-  //	  write_flash(lifetimeRain*100,flash2);
-  //    }
-  // else
-  //lifetimeRain = *flash2/100.0;
+  if (*flash2 == 0xffff)
+      {
+  	  write_flash(lifetimeRain*100,flash2);
+      }
+   else
+  lifetimeRain = *flash2/100.0;
 
 
-//  if (*flash1 == 0xffff){
-//      my_address = 60; // if flash hasn't been set up yet we default to
-//                       // id 60, baud 9600
-//      baud_rate=0;
-//      chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
-//      write_flash((my_address&0xff),flash1);
-//      
-//  }
-//  else{
-//      // flash has been written - use those values
-//      // init saved values in case we only choose to reset
-//      // just id or just address later.
-//      my_address = (*flash1) & 0xff;
-//      save_address = my_address;
-//      baud_rate = ((*flash1) & 0xff00) >> 8;
-//      save_baud_rate = baud_rate;
-//
-//  }
-//      
-//
+  if (*flash1 == 0xffff){
+      my_address = 60; // if flash hasn't been set up yet we default to
+                       // id 60, baud 9600
+      baud_rate=0;
+      chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
+      write_flash((my_address&0xff),flash1);
+      
+  }
+  else{
+      // flash has been written - use those values
+      // init saved values in case we only choose to reset
+      // just id or just address later.
+      my_address = (*flash1) & 0xff;
+      save_address = my_address;
+      baud_rate = ((*flash1) & 0xff00) >> 8;
+      save_baud_rate = baud_rate;
+
+  }
+      
+
 
 
   restart_modbus();
@@ -1209,9 +1190,9 @@ int main(void) {
   feedWatchdog();
 
 
-  //chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-  //chThdCreateStatic(waThread6, sizeof(waThread6), NORMALPRIO, Thread6, NULL);
-  //chThdCreateStatic(waThread7, sizeof(waThread7), NORMALPRIO, Thread7, NULL);
+  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  chThdCreateStatic(waThread6, sizeof(waThread6), NORMALPRIO, Thread6, NULL);
+  chThdCreateStatic(waThread7, sizeof(waThread7), NORMALPRIO, Thread7, NULL);
 
   chprintf((BaseSequentialStream*)&SD1,"HelloA\r\n")  ;
   chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
