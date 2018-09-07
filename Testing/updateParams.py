@@ -36,7 +36,7 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
                 #print("..")
                 instrument.close()
                 #print(x)
-                decoder = BinaryPayloadDecoder.fromRegisters(x.registers, endian=Endian.Little)
+                decoder = BinaryPayloadDecoder.fromRegisters(x.registers, byteorder=Endian.Big)
                 if fieldtype == 'slong':
                     x = decoder.decode_32bit_int()
                 if fieldtype == 'long':
@@ -64,7 +64,7 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
 def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(baud_setting)
     payload = builder.build()
@@ -78,7 +78,7 @@ def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
 def change_station_id(modbusid,serialport,id_setting,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(id_setting)
     payload = builder.build()
@@ -93,7 +93,7 @@ def change_station_id(modbusid,serialport,id_setting,current_baudrate):
 def update_station_settings(modbusid,serialport,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(0x1234)
     payload = builder.build()
@@ -115,19 +115,19 @@ print("Temp3 *10 "   ,readmodbus(60,5,'sint',4,'/dev/ttyUSB0',9600))
 print("Temp4 *10 "   ,readmodbus(60,6,'sint',4,'/dev/ttyUSB0',9600))
 print("Temp5 *10 "   ,readmodbus(60,7,'sint',4,'/dev/ttyUSB0',9600))
 print("Snow "        ,readmodbus(60,8,'sint',4,'/dev/ttyUSB0',9600))
-change_station_baud(60,'/dev/ttyUSB0',1,9600); # change to 19200
+#change_station_baud(60,'/dev/ttyUSB0',1,9600); # change to 19200
 change_station_id(60,'/dev/ttyUSB0',61,9600);  # change to id = 61
 update_station_settings(60,'/dev/ttyUSB0',9600);  # change to id = 61
 time.sleep(2);
 
-print("Irradiance*10",readmodbus(61,1,'sint',4,'/dev/ttyUSB0',19200))
-print("Wind *10 "    ,readmodbus(61,2,'sint',4,'/dev/ttyUSB0',19200))
-print("Temp1 *10 "   ,readmodbus(61,3,'sint',4,'/dev/ttyUSB0',19200))
-print("Temp2 *10 "   ,readmodbus(61,4,'sint',4,'/dev/ttyUSB0',19200))
-print("Temp3 *10 "   ,readmodbus(61,5,'sint',4,'/dev/ttyUSB0',19200))
-print("Temp4 *10 "   ,readmodbus(61,6,'sint',4,'/dev/ttyUSB0',19200))
-print("Temp5 *10 "   ,readmodbus(61,7,'sint',4,'/dev/ttyUSB0',19200))
-print("Snow "        ,readmodbus(61,8,'sint',4,'/dev/ttyUSB0',19200))
+print("Irradiance*10",readmodbus(61,1,'sint',4,'/dev/ttyUSB0',9600))
+print("Wind *10 "    ,readmodbus(61,2,'sint',4,'/dev/ttyUSB0',9600))
+print("Temp1 *10 "   ,readmodbus(61,3,'sint',4,'/dev/ttyUSB0',9600))
+print("Temp2 *10 "   ,readmodbus(61,4,'sint',4,'/dev/ttyUSB0',9600))
+print("Temp3 *10 "   ,readmodbus(61,5,'sint',4,'/dev/ttyUSB0',9600))
+print("Temp4 *10 "   ,readmodbus(61,6,'sint',4,'/dev/ttyUSB0',9600))
+print("Temp5 *10 "   ,readmodbus(61,7,'sint',4,'/dev/ttyUSB0',9600))
+print("Snow "        ,readmodbus(61,8,'sint',4,'/dev/ttyUSB0',9600))
 #change_station_baud(61,'/dev/ttyUSB0',0,19200); # change to 9600
 #change_station_id(61,'/dev/ttyUSB0',60,19200);  # change to id = 60
 #update_station_settings(61,'/dev/ttyUSB0',19200);  # enable settings and reset

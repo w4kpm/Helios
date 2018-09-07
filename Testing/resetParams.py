@@ -36,7 +36,7 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
                 #print("..")
                 instrument.close()
                 #print(x)
-                decoder = BinaryPayloadDecoder.fromRegisters(x.registers, endian=Endian.Little)
+                decoder = BinaryPayloadDecoder.fromRegisters(x.registers, byteorder=Endian.Little)
                 if fieldtype == 'slong':
                     x = decoder.decode_32bit_int()
                 if fieldtype == 'long':
@@ -64,7 +64,7 @@ def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
 def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(baud_setting)
     payload = builder.build()
@@ -78,7 +78,7 @@ def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
 def change_station_id(modbusid,serialport,id_setting,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(id_setting)
     payload = builder.build()
@@ -93,7 +93,7 @@ def change_station_id(modbusid,serialport,id_setting,current_baudrate):
 def update_station_settings(modbusid,serialport,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
-    builder = BinaryPayloadBuilder(endian=Endian.Big)
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
 
     builder.add_16bit_int(0x1234)
     payload = builder.build()
@@ -107,6 +107,6 @@ def update_station_settings(modbusid,serialport,current_baudrate):
     
 
 
-change_station_baud(61,'/dev/ttyUSB0',0,19200); # change to 9600
-change_station_id(61,'/dev/ttyUSB0',60,19200);  # change to id = 60
-update_station_settings(61,'/dev/ttyUSB0',19200);  # enable settings and reset
+#change_station_baud(61,'/dev/ttyUSB0',0,9600); # change to 9600
+change_station_id(61,'/dev/ttyUSB0',60,9600);  # change to id = 60
+update_station_settings(61,'/dev/ttyUSB0',9600);  # enable settings and reset
