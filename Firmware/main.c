@@ -46,7 +46,8 @@ static char text[255];
 static char metrics[9][12];
 static uint8_t vbuf2[32][128];
 static uint8_t vbuf[32][128];
-static float rainRate,hourRain,lifetimeRain = 0.0;
+static uint8_t rainHistory[10] = {0};
+static float rainRate,lifetimeRain = 0.0;
 static  float irradiance;
 static  float irradiance2;
 static  float irradiance3;
@@ -357,9 +358,6 @@ void erase_flash(uint16_t *flash)
     unlock_flash();                        // must unlock flash before
 					   // any write operations
 
-    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
-                                           // by writing 1
-
     FLASH->CR |= FLASH_CR_PER;             // set page erase
     
     FLASH->AR = flash;                     // set page to flash
@@ -371,7 +369,9 @@ void erase_flash(uint16_t *flash)
 							// reset if it gets
 							// stuck
 
-
+    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+    CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
+                                           // clear this prior to writing
     
 }
 
@@ -382,20 +382,22 @@ void write_flash(uint16_t value,uint16_t* flash)
     erase_flash(flash);
 
 
-    CLEAR_BIT (FLASH->CR, (FLASH_CR_PER)); // found note online that you must
-                                           // clear this prior to writing
-    
-    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
-                                           // by writing 1
-    
+      
     SET_BIT(FLASH->CR, (FLASH_CR_PG));     // we are already unlocked, trying
 					   // to do it again will mess
 					   // things up
     
     *flash = value;                        // actually write the value
+
     
+    while ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY); // loop till done
+							// watchdog should
+							// reset if it gets
+							// stuck
     CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  // probably don't need to to this
 					   // again
+    
+    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
 }
 
 
@@ -412,7 +414,15 @@ uint32_t checksum()
     return checksum;
 }
 
-
+float calcRainRate(){
+    int x;
+    int rainTotal;
+    rainTotal = 0;
+    for (x=0;x<10;x++)
+	rainTotal += rainHistory[x];
+    chprintf((BaseSequentialStream*)&SD1,"rainTotal %d \r\n",rainTotal);
+    return (rainTotal/100.0)*6.0;
+}
 
 static THD_WORKING_AREA(waThread1, 128);
 static THD_FUNCTION(Thread1, arg) {
@@ -423,7 +433,7 @@ static THD_FUNCTION(Thread1, arg) {
       trigger = palReadPad(GPIOC,6);
       if (trigger == 0)
 	  {
-	      hourRain += 0.01;
+	      rainHistory[0] += 1;
 	      lifetimeRain += 0.01;
 	      chThdSleepMilliseconds(250); // debounce
 	      while (palReadPad(GPIOC,6)==0)
@@ -958,12 +968,16 @@ static THD_FUNCTION(Thread5, arg) {
 
 static THD_WORKING_AREA(waThread6, 128);
 static THD_FUNCTION(Thread6, arg) {
+    int x;
     while (TRUE)
 	{
 	    // the skip is because the way I have it hooked up right now
 	    // causes it to read whatever we send.
-	    rainRate = hourRain * 60.0; // rain rate is inches/hour
-	    hourRain = 0.0;
+	    rainRate = calcRainRate();
+	    for (x=0;x<9;x++)		  
+		rainHistory[9-x] = rainHistory[8-x];
+
+	    rainHistory[0] = 0;
 	    chThdSleepMilliseconds(1000*60); // sleep for a minute
 	}
 }
@@ -980,8 +994,12 @@ static THD_FUNCTION(Thread7, arg) {
 	    savedvalue = *flash2;
 	    currentvalue = lifetimeRain*100;
 	    if (currentvalue != savedvalue)
-		write_flash(lifetimeRain*100,flash2);
-	    chThdSleepMilliseconds(1000*60); // sleep for an hour
+		{
+		    write_flash(currentvalue,flash2);
+		    chprintf((BaseSequentialStream*)&SD1,"!!!writing flash,%d,%d\r\n",currentvalue,*flash2);
+		    
+		}
+	    chThdSleepMilliseconds(1000*60*60); // sleep for an hour
 	}
 }
 
@@ -1134,15 +1152,17 @@ int main(void) {
   sdStart(&SD1,&uartCfg);
 
   
-  //write_flash(0,flash2); Reset counter
+
+
 
   if (*flash2 == 0xffff)
       {
-  	  write_flash(lifetimeRain*100,flash2);
+	  chprintf((BaseSequentialStream*)&SD1,"!!!writing flash,00\r\n");
+  	  write_flash(0,flash2);
       }
-   else
+  
   lifetimeRain = *flash2/100.0;
-
+  chprintf((BaseSequentialStream*)&SD1,"--------Rain: %d\r\n",*flash2);
 
   if (*flash1 == 0xffff){
       my_address = 60; // if flash hasn't been set up yet we default to
@@ -1229,8 +1249,8 @@ int main(void) {
 
 	  // datasheet RM0316 VDDA = 3.3 V ₓ VREFINT_CAL / VREFINT_DATA
 	  
-	  chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
-	  chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d %d\r\n",samples2[0],samples2[1],samples2[2],samples2[3],samples2[4]);
+	  //chprintf(&SD1,"calibrated at 3.3 %d\r\n",*(uint16_t*)0x1FFFF7BA);
+	  //chprintf((BaseSequentialStream*)&SD1,"ADC4 %d %d %d %d %d\r\n",samples2[0],samples2[1],samples2[2],samples2[3],samples2[4]);
 
 
 	  
@@ -1243,7 +1263,8 @@ int main(void) {
 	  chThdSleepMilliseconds(100);
 	  feedWatchdog();
 	  internalTemp = calc_temp(VDD,samples1[0]);
-	  chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d %d\r\n",samples1[0],samples1[1],samples1[2]);
+	  //chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d %d\r\n",samples1[0],samples1[1],samples1[2]);
+	  chprintf((BaseSequentialStream*)&SD1,"Rain: %.2f Rate:%.2f\r\n",lifetimeRain,rainRate);
 
 
 	  irradiance = calc_volts(VDD,samples2[4]);
@@ -1261,7 +1282,7 @@ int main(void) {
 	  else
 	      windspeed = windspeed*2.237;
 	  windspeedout = windspeed;
-          chprintf((BaseSequentialStream*)&SD1,"irr: %.2f  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance3,internalTemp,VDD,amps,windspeed,snow);
+          //chprintf((BaseSequentialStream*)&SD1,"irr: %.2f  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance3,internalTemp,VDD,amps,windspeed,snow);
 	  
 	  pt100temp1 = get_temp(0);
 	  pt100temp2 = get_temp(1);
