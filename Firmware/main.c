@@ -44,6 +44,7 @@ static uint8_t reset =0;
 
 static char text[255];
 static char metrics[9][12];
+static uint8_t vbuf3[32][128];
 static uint8_t vbuf2[32][128];
 static uint8_t vbuf[32][128];
 static uint8_t rainHistory[10] = {0};
@@ -318,7 +319,7 @@ void clear_oled()
 
 
 
-void shade_oled(uint8_t shade)
+void shade_oled (uint8_t shade)
 {
         memset(&vbuf,shade,128*32);
 }
@@ -456,9 +457,11 @@ static THD_FUNCTION(Thread2, arg) {
   chRegSetThreadName("ScreenRefresh");
 
   chprintf((BaseSequentialStream*)&SD1,"Start Update\r\n");
-  
+      
   while (TRUE) {
-      blink = palReadPad(GPIOC,6);
+    
+    blink = palReadPad(GPIOC,6);
+    
       // reverse pixels and then rotate entire display
       // before writing to LCD
       for (x=0;x<32;x++)
@@ -466,17 +469,23 @@ static THD_FUNCTION(Thread2, arg) {
 	      pixel2 = (vbuf[x][y]&0xF0)>>4;
 	      pixel = (vbuf[x][y]&0x0F)<<4;
 	      if (blink==0)
+		{
+
 		  vbuf2[31-x][128-y] = 0xFF;
+		}
 	      else
+		{
 		  vbuf2[31-x][128-y] = pixel|pixel2;
+
+		}
       }
       palSetPad(GPIOB,DC);
       spiStart(&SPID2,&std_spicfg3);
       spiSelect(&SPID2);
+  
       spiSend(&SPID2,128*32,&vbuf2);
       spiUnselect(&SPID2);
       spiStop(&SPID2);
-
       chThdSleepMilliseconds(1);
 
   }
@@ -1197,10 +1206,12 @@ int main(void) {
   chprintf((BaseSequentialStream*)&SD1,"SPI init\r\n");
   init_oled();
   chprintf((BaseSequentialStream*)&SD1,"OLED init\r\n");
+  
   chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
-  graphics_init();
+  
   feedWatchdog();
+  graphics_init();
   chThdSleepMilliseconds(1000);
   palClearPad(GPIOA, 1);     // Recieve Enable RS485
   palClearPad(GPIOE, 0);     // Disable TX Light
@@ -1317,8 +1328,10 @@ int main(void) {
 
 	  displaymetric = step/32;
 	  clear_oled();
+	  
 	  chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
 	  oled_draw_big_string(0,0,metrics[displaymetric]);
+	  
        }
 
   return 0;
