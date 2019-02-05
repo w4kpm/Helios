@@ -1313,7 +1313,7 @@ int main(void) {
 	      sprintf(metrics[6],"Rain: %4.2f",rainRate);
 	  else
 	      fillTemp(metrics[6],pt100temp5,5);
-	  if (snow < .05){
+	  if (snow < .025){
 	      snowoutput = 2;
 	      sprintf(metrics[7], "Snow:  N/C");
 	  }
