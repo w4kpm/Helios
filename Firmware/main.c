@@ -44,7 +44,7 @@ static uint8_t reset =0;
 
 static char text[255];
 static char metrics[9][12];
-static uint8_t vbuf3[32][128];
+
 static uint8_t vbuf2[32][128];
 static uint8_t vbuf[32][128];
 static uint8_t rainHistory[10] = {0};
@@ -62,6 +62,7 @@ static uint8_t oled_current_column;
 
 static uint16_t *flash1 = 0x803F000;
 static uint16_t *flash2 = 0x803e800;
+static uint16_t settings;
 
 #define ADC_GRP1_NUM_CHANNELS   2
 #define ADC_GRP2_NUM_CHANNELS   5
@@ -335,9 +336,9 @@ void graphics_init()
   //shade_oled(0x55);
   oled_draw_string(0,0,"Helios ");
   if (baud_rate == 1)
-      sprintf(text,"id=%d    baud=19200 ",my_address );
+      sprintf(text,"id=%d  baud=19200 ",my_address );
   else
-      sprintf(text,"id=%d    baud=9600 ",my_address);
+      sprintf(text,"id=%d  baud=9600 ",my_address);
   oled_draw_string(0,1,text);
 
 }
@@ -395,10 +396,11 @@ void write_flash(uint16_t value,uint16_t* flash)
 							// watchdog should
 							// reset if it gets
 							// stuck
-    CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  // probably don't need to to this
+    //  CLEAR_BIT (FLASH->CR, (FLASH_CR_PG));  // probably don't need to to this
 					   // again
     
-    SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+    //SET_BIT (FLASH->SR, (FLASH_SR_EOP));   // tech note RM0316 says to clear
+    FLASH->CR |= FLASH_CR_LOCK;
 }
 
 
@@ -621,6 +623,15 @@ static SerialConfig uartCfg =
 };
 
 
+//static SerialConfig uartCfg2 =
+//{
+//    19200,// bit rate
+//    0x1400,
+//    0,
+//    0,
+//};
+//
+
 static SerialConfig uartCfg2 =
 {
     9600,// bit rate
@@ -628,6 +639,8 @@ static SerialConfig uartCfg2 =
     0,
     0,
 };
+
+
 
 static SerialConfig uartCfg3 =
 {
@@ -838,10 +851,13 @@ static THD_FUNCTION(Thread4, arg) {
 		    case 1234:
 			// 1 for 19200 anything else is 9600
 			// throw error if not 0 or 1
-			
+		      settings = ((save_baud_rate&0xff)<<8)|(save_address&0xff);
+		      chprintf(&SD1,"Write Flash %d,%d,%x\r\n",save_address,save_baud_rate,settings);			
 			code =  (lcltext[4]<<8)|lcltext[5];
 			if (code==0x1234){
-			    write_flash(((save_baud_rate&0xff)<<8)|(save_address&0xff),flash1);
+			  //write_flash(((save_baud_rate&0xff)<<8)|(save_address&0xff),flash1);
+			  write_flash(settings,flash1);
+			    chprintf(&SD1,"WroteFlash %x\r\n",*flash1);			
 			    reset = 1;
 			}
 			else
@@ -1179,7 +1195,7 @@ int main(void) {
       baud_rate=0;
       chprintf((BaseSequentialStream*)&SD1,"Resetting Flash - I am # %d,%d\r\n",my_address,baud_rate);
       write_flash((my_address&0xff),flash1);
-      
+      chprintf((BaseSequentialStream*)&SD1,"ReadingFlash - I have # %x\r\n",*flash1);
   }
   else{
       // flash has been written - use those values
@@ -1275,7 +1291,7 @@ int main(void) {
 	  feedWatchdog();
 	  internalTemp = calc_temp(VDD,samples1[0]);
 	  //chprintf((BaseSequentialStream*)&SD1,"ADC1 %d %d %d\r\n",samples1[0],samples1[1],samples1[2]);
-	  chprintf((BaseSequentialStream*)&SD1,"Rain: %.2f Rate:%.2f\r\n",lifetimeRain,rainRate);
+	  //chprintf((BaseSequentialStream*)&SD1,"Rain: %.2f Rate:%.2f\r\n",lifetimeRain,rainRate);
 
 
 	  irradiance = calc_volts(VDD,samples2[4]);
@@ -1329,7 +1345,7 @@ int main(void) {
 	  displaymetric = step/32;
 	  clear_oled();
 	  
-	  chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
+	  //chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
 	  oled_draw_big_string(0,0,metrics[displaymetric]);
 	  
        }

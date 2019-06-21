@@ -105,8 +105,9 @@ def update_station_settings(modbusid,serialport,current_baudrate):
     instrument.close()
 
     
+speed = 19200
+id = 62
 
-
-#change_station_baud(61,'/dev/ttyUSB0',0,9600); # change to 9600
-change_station_id(61,'/dev/ttyUSB0',60,9600);  # change to id = 60
-update_station_settings(61,'/dev/ttyUSB0',9600);  # enable settings and reset
+change_station_baud(id,'/dev/ttyUSB0',0,speed); # change to 9600
+change_station_id(id,'/dev/ttyUSB0',60,speed);  # change to id = 60
+update_station_settings(id,'/dev/ttyUSB0',speed);  # enable settings and reset

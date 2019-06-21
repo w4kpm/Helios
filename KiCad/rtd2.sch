@@ -1,40 +1,6 @@
-EESchema Schematic File Version 2
-LIBS:power
-LIBS:device
-LIBS:switches
-LIBS:relays
-LIBS:motors
-LIBS:transistors
-LIBS:conn
-LIBS:linear
-LIBS:regul
-LIBS:74xx
-LIBS:cmos4000
-LIBS:adc-dac
-LIBS:memory
-LIBS:xilinx
-LIBS:microcontrollers
-LIBS:dsp
-LIBS:microchip
-LIBS:analog_switches
-LIBS:motorola
-LIBS:texas
-LIBS:intel
-LIBS:audio
-LIBS:interface
-LIBS:digital-audio
-LIBS:philips
-LIBS:display
-LIBS:cypress
-LIBS:siliconi
-LIBS:opto
-LIBS:atmel
-LIBS:contrib
-LIBS:valves
-LIBS:stm32
-LIBS:MyParts
+EESchema Schematic File Version 4
 LIBS:Helios-cache
-EELAYER 25 0
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -49,7 +15,7 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L MAX31865 U5
+L MyParts:MAX31865 U5
 U 1 1 5B2C73F9
 P 5550 3300
 F 0 "U5" H 5550 3250 60  0000 C CNN
@@ -61,7 +27,7 @@ F 3 "" H 5500 3000 60  0000 C CNN
 $EndComp
 NoConn ~ 6450 2950
 $Comp
-L GND #PWR029
+L power1:GND #PWR029
 U 1 1 5B2C7401
 P 6750 3100
 F 0 "#PWR029" H 6750 2850 50  0001 C CNN
@@ -72,7 +38,7 @@ F 3 "" H 6750 3100 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L GND #PWR030
+L power1:GND #PWR030
 U 1 1 5B2C7407
 P 6750 3650
 F 0 "#PWR030" H 6750 3400 50  0001 C CNN
@@ -83,12 +49,12 @@ F 3 "" H 6750 3650 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L R R9
+L device:R R9
 U 1 1 5B2C740D
 P 3850 3400
 F 0 "R9" V 3930 3400 50  0000 C CNN
 F 1 "430 .1%" V 3850 3400 50  0000 C CNN
-F 2 "Resistors_SMD:R_1206" V 3780 3400 50  0001 C CNN
+F 2 "LED_SMD:LED_1206_3216Metric" V 3780 3400 50  0001 C CNN
 F 3 "" H 3850 3400 50  0001 C CNN
 	1    3850 3400
 	1    0    0    -1  
@@ -102,7 +68,7 @@ Wire Wire Line
 Wire Wire Line
 	4300 3550 4300 3450
 $Comp
-L +3.3V #PWR031
+L power1:+3.3V #PWR031
 U 1 1 5B2C7418
 P 3800 3050
 F 0 "#PWR031" H 3800 2900 50  0001 C CNN
@@ -115,23 +81,23 @@ $EndComp
 Wire Wire Line
 	3850 3150 4600 3150
 $Comp
-L C C14
+L device:C C14
 U 1 1 5B2C741F
 P 4000 2750
 F 0 "C14" H 4025 2850 50  0000 L CNN
 F 1 ".1 uF" H 4025 2650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_1206" H 4038 2600 50  0001 C CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 4038 2600 50  0001 C CNN
 F 3 "" H 4000 2750 50  0001 C CNN
 	1    4000 2750
 	1    0    0    -1  
 $EndComp
 $Comp
-L C C15
+L device:C C15
 U 1 1 5B2C7426
 P 4250 2750
 F 0 "C15" H 4275 2850 50  0000 L CNN
 F 1 ".1 uF" H 4275 2650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_1206" H 4288 2600 50  0001 C CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 4288 2600 50  0001 C CNN
 F 3 "" H 4250 2750 50  0001 C CNN
 	1    4250 2750
 	1    0    0    -1  
@@ -139,7 +105,7 @@ $EndComp
 Wire Wire Line
 	4250 2900 4250 3050
 $Comp
-L GND #PWR032
+L power1:GND #PWR032
 U 1 1 5B2C742E
 P 4100 2450
 F 0 "#PWR032" H 4100 2200 50  0001 C CNN
@@ -203,12 +169,12 @@ Wire Wire Line
 	4000 2900 4000 3150
 Connection ~ 4000 3150
 $Comp
-L C C16
+L device:C C16
 U 1 1 5B2C7458
 P 5500 4750
 F 0 "C16" H 5525 4850 50  0000 L CNN
 F 1 "100nF" H 5525 4650 50  0000 L CNN
-F 2 "Capacitors_SMD:C_1206" H 5538 4600 50  0001 C CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 5538 4600 50  0001 C CNN
 F 3 "" H 5500 4750 50  0001 C CNN
 	1    5500 4750
 	0    1    1    0   

@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name stm32)(type Legacy)(uri /home/kelly/Helios/stm32-kicad-lib/stm32.lib)(options "")(descr ""))
+  (lib (name MyParts)(type Legacy)(uri ${KIPRJMOD}/MyParts.lib)(options "")(descr ""))
+)

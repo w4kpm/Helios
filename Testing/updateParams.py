@@ -1,3 +1,13 @@
+# WARNING: this file is set up to talk EVEN parity!!!
+
+# this was only done on the one weather station that
+# went to carillion so we may wish to change. 
+
+
+
+
+
+
 from pymodbus.client.sync import ModbusSerialClient 
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
@@ -6,7 +16,7 @@ import time
 
 
 def readmodbus(modbusid,register,fieldtype,readtype,serialport,current_baud):
-    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baud)
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baud,parity='E')
     instrument.connect()
     
     #print("Reading ModbusID %d register %d"%(modbusid,register)),
@@ -75,6 +85,22 @@ def change_station_baud(modbusid,serialport,baud_setting,current_baudrate):
     instrument.write_register(1001,pld,unit=modbusid,timeout=.1)
     instrument.close()
 
+def change_station_parity(modbusid,serialport,parity_setting,current_baudrate):
+    instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
+
+    builder = BinaryPayloadBuilder(byteorder=Endian.Big)
+
+    builder.add_16bit_int(parity_setting)
+    payload = builder.build()
+    
+    pld = payload[0][1]|(payload[0][0]<<8)
+    
+    instrument.connect()
+    instrument.write_register(1002,pld,unit=modbusid,timeout=.1)
+    instrument.close()
+
+
+    
 def change_station_id(modbusid,serialport,id_setting,current_baudrate):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=current_baudrate)
 
@@ -107,27 +133,27 @@ def update_station_settings(modbusid,serialport,current_baudrate):
     
 
 
-print("Irradiance*10",readmodbus(60,1,'sint',4,'/dev/ttyUSB0',9600))
-print("Wind *10 "    ,readmodbus(60,2,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp1 *10 "   ,readmodbus(60,3,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp2 *10 "   ,readmodbus(60,4,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp3 *10 "   ,readmodbus(60,5,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp4 *10 "   ,readmodbus(60,6,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp5 *10 "   ,readmodbus(60,7,'sint',4,'/dev/ttyUSB0',9600))
-print("Snow "        ,readmodbus(60,8,'sint',4,'/dev/ttyUSB0',9600))
+#print("Irradiance*10",readmodbus(60,1,'sint',4,'/dev/ttyUSB0',9600))
+#print("Wind *10 "    ,readmodbus(60,2,'sint',4,'/dev/ttyUSB0',9600))
+#print("Temp1 *10 "   ,readmodbus(60,3,'sint',4,'/dev/ttyUSB0',9600))
+#print("Temp2 *10 "   ,readmodbus(60,4,'sint',4,'/dev/ttyUSB0',9600))
+#print("Temp3 *10 "   ,readmodbus(60,5,'sint',4,'/dev/ttyUSB0',9600))
+#print("Temp4 *10 "   ,readmodbus(60,6,'sint',4,'/dev/ttyUSB0',9600))
+#print("Temp5 *10 "   ,readmodbus(60,7,'sint',4,'/dev/ttyUSB0',9600))
+#print("Snow "        ,readmodbus(60,8,'sint',4,'/dev/ttyUSB0',9600))
 #change_station_baud(60,'/dev/ttyUSB0',1,9600); # change to 19200
-change_station_id(60,'/dev/ttyUSB0',61,9600);  # change to id = 61
-update_station_settings(60,'/dev/ttyUSB0',9600);  # change to id = 61
-time.sleep(2);
-
-print("Irradiance*10",readmodbus(61,1,'sint',4,'/dev/ttyUSB0',9600))
-print("Wind *10 "    ,readmodbus(61,2,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp1 *10 "   ,readmodbus(61,3,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp2 *10 "   ,readmodbus(61,4,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp3 *10 "   ,readmodbus(61,5,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp4 *10 "   ,readmodbus(61,6,'sint',4,'/dev/ttyUSB0',9600))
-print("Temp5 *10 "   ,readmodbus(61,7,'sint',4,'/dev/ttyUSB0',9600))
-print("Snow "        ,readmodbus(61,8,'sint',4,'/dev/ttyUSB0',9600))
+##change_station_parity(60,'/dev/ttyUSB0',1,9600);
+#update_station_settings(60,'/dev/ttyUSB0',9600);  # change to id = 61
+#time.sleep(2);
+#
+print("Irradiance*10",readmodbus(60,1,'sint',4,'/dev/ttyUSB0',19200))
+print("Wind *10 "    ,readmodbus(60,2,'sint',4,'/dev/ttyUSB0',19200))
+print("Temp1 *10 "   ,readmodbus(60,3,'sint',4,'/dev/ttyUSB0',19200))
+print("Temp2 *10 "   ,readmodbus(60,4,'sint',4,'/dev/ttyUSB0',19200))
+print("Temp3 *10 "   ,readmodbus(60,5,'sint',4,'/dev/ttyUSB0',19200))
+print("Temp4 *10 "   ,readmodbus(60,6,'sint',4,'/dev/ttyUSB0',19200))
+print("Temp5 *10 "   ,readmodbus(60,7,'sint',4,'/dev/ttyUSB0',19200))
+print("Snow "        ,readmodbus(60,8,'sint',4,'/dev/ttyUSB0',19200))
 #change_station_baud(61,'/dev/ttyUSB0',0,19200); # change to 9600
 #change_station_id(61,'/dev/ttyUSB0',60,19200);  # change to id = 60
 #update_station_settings(61,'/dev/ttyUSB0',19200);  # enable settings and reset

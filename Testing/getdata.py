@@ -6,7 +6,7 @@ import time
 import datetime
 baud=9600
 station_id = 60
-port = '/dev/ttyUSB1'
+port = '/dev/ttyUSB0'
 
 def readmodbus(modbusid,register,fieldtype,readtype,serialport):
     instrument = ModbusSerialClient(method ='rtu',port=serialport,baudrate=baud)
@@ -89,8 +89,10 @@ while True:
     temp1 = readmodbus(station_id,3,'sint',4,port)/10.0
     temp2 = readmodbus(station_id,4,'sint',4,port)/10.0
     temp3 = readmodbus(station_id,5,'sint',4,port)/10.0
+    temp4 = readmodbus(station_id,6,'sint',4,port)/10.0
     rainrate = readmodbus(station_id,9,'sint',4,port)/100.0
     lifetimerain = readmodbus(station_id,10,'sint',4,port)/100.0
-    outs = [str(x) for x in [datetime.datetime.now(),irr,wind,temp1,temp2,temp3,rainrate,lifetimerain]]
+    #winddir = readmodbus(station_id,11,'sint',4,port)
+    outs = [str(x) for x in [datetime.datetime.now(),irr,wind,temp1,temp2,temp3,temp4,rainrate,lifetimerain]]
     print(','.join(outs))
     time.sleep(10)
