@@ -33,7 +33,7 @@
 #include <string.h>
 #include "stm32f3xx.h"
 #include "font.h"
-#include "fontbig.h"
+//#include "fontbig.h"
 static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 static uint8_t my_address;
@@ -45,8 +45,8 @@ static uint8_t reset =0;
 static char text[255];
 static char metrics[9][12];
 
-static uint8_t vbuf2[32][128];
-static uint8_t vbuf[32][128];
+//static uint8_t vbuf2[4][128];
+static uint8_t vbuf[4][128];
 static uint8_t rainHistory[10] = {0};
 static float rainRate,lifetimeRain = 0.0;
 static  float irradiance;
@@ -161,6 +161,20 @@ void set_oled_text_pos(uint8_t x,uint8_t y)
 
 
 
+//void write_oled_char(char a)
+//{
+//  uint8_t j,i;
+//
+//   for (j=0; j<16; j++)
+//  {
+//
+//    for (i=0; i<6; i++)
+//    {
+//	vbuf[oled_current_row+j][oled_current_column+i] = font[a][j][i];
+//    }
+//  }}
+//
+
 void write_oled_char(char a)
 {
   uint8_t j,i;
@@ -202,7 +216,7 @@ void write_big_oled_char(char a)
 
     for (i=0; i<12; i++)
     {
-	vbuf[(oled_current_row+j)][(oled_current_column+i)] = fontbig[a][j][i];
+      vbuf[(oled_current_row+j)][(oled_current_column+i)] = 0xff;//fontbig[a][j][i];
     }
   }}
 
@@ -221,6 +235,15 @@ void oled_draw_string(uint8_t x,uint8_t y,char* text)
     }
 }
 
+void oled_hatch_screen()
+{
+  uint8_t fill[8] = {0x81,0x42,0x24,0x18,0x18,0x24,0x42,0x81};
+  int x;
+  int y;
+  for (x=0;x<128;x++)
+    for (y=0;y<4;y++)
+      vbuf[y][x] = fill[x%8];
+}
 
 void oled_draw_big_string(uint8_t x,uint8_t y,char* text)
 {
@@ -246,63 +269,115 @@ void init_oled()
       uint8_t i, j,x;
 
 
+
+
+      
       chprintf(&SD1,"do oled command A\r\n");
 
 
-  write_oled_command(0xfd); // Unlock 
-  write_oled_command(0x12);
+ //   write_oled_command(0x78); 
+ //   write_oled_command(0xAE);                                       //DISPLAYOFF 
+ //   write_oled_command(0xD5);                                       //SETDISPLAYCLOCKDIV 
+ //   write_oled_command(0x80);                                       //ratio 0x80 
+ //   write_oled_command(0x00);                                       //SETMULTIPLEX 
+ //   write_oled_command(0x3F);                                       //   1f 128x32 
+ //   write_oled_command(0xD3);                                       //SETDISPLAYOFFSET 
+ //   write_oled_command(0x00); 					     //
+ //  			   
+ //   write_oled_command(0x40);                                       //SETSTARTLINE 
+ //   write_oled_command(0x8D);                                       //CHARGEPUMP 
+ //   write_oled_command(0x14);                                       //vccstate 14 
+ //   write_oled_command(0x20);                                       //MEMORYMODE 
+ //   write_oled_command(0x00);                                       // 
+ //   write_oled_command(0xA1);                                       //A0 upside down SEGREMAP 
+ //   write_oled_command(0xC8);                                       //COMSCANDEC 
+ //  			   
+ //   write_oled_command(0xDA);                                       //SETCOMPINS 
+ //   write_oled_command(0x12);                                       // 02 128x32  12 
+ //   write_oled_command(0x81);                                       //SETCONTRAST 
+ //   write_oled_command(0xA0);                                       //value 1-->256 
+ //   write_oled_command(0xD9);                                       //SETPRECHARGE 
+ //   write_oled_command(0xF1);                                       //vccstate  f1 
+ //   write_oled_command(0xDB);                                       //SETVCOMDETECT 
+ //  			   
+ //   write_oled_command(0x40);                                       //
+ //   write_oled_command(0xA4);                                       //DISPLAYALLON_RESUME 
+ //   write_oled_command(0xA6);                                       //NORMALDISPLAY 
+ //			   
+ //   write_oled_command(0xAF); 
 
-  write_oled_command(0xae); // Set_Display_Off
+      ///-------------------------------------
+      
+//     write_oled_command(0xa8); // Set Mux Ratio 
+//     write_oled_command(0x3f);
+//
+//     write_oled_command(0xd3); //display offset
+//     write_oled_command(0x00);
+//     write_oled_command(0x40);
+//     
+//     write_oled_command(0xA0); // segment remap
+//     write_oled_command(0xA1);
+//
+//     write_oled_command(0xc0);
+//     write_oled_command(0xc8);
+//
+//     write_oled_command(0xDA);
+//     write_oled_command(0x02);
+//
+//     write_oled_command(0x81);
+//     write_oled_command(0x7f);
+//     
+//     write_oled_command(0xa4);
+//     write_oled_command(0xa6);
+//
+//     write_oled_command(0xd5);
+//     write_oled_command(0x80);
+//
+//     write_oled_command(0x8d);
+//     write_oled_command(0x14);
+//
+//
+//     write_oled_command(0xaF); // Set_Display_On
+//
 
-  write_oled_command(0x15); // Set_Column_Address
-  write_oled_command(0x00);
-  write_oled_command(0x7f);
-
-  write_oled_command(0x75); // Set_Row_Address
-  write_oled_command(0x00);
-  write_oled_command(0x1f);
-
-  write_oled_command(0x81); // Set_Contrast Current
-  write_oled_command(0x27);
-
-  write_oled_command(0x87); // Set_Current Range
-  
-  write_oled_command(0xa0); // Set_Remap_Format
-  write_oled_command(0x06); 
-
-
-  write_oled_command(0xa1); // Set_start line
-  write_oled_command(0x00); 
-
-  write_oled_command(0xa2); // Set_data offset
-  write_oled_command(0x00); 
-
-  write_oled_command(0xa8); // Set_mux ratio
-  write_oled_command(0x1f); 
-
-
-  
-  write_oled_command(0xb1); // Set_phase length
-  write_oled_command(0x71); 
-
-
-
-  write_oled_command(0xb3); // Set_Display_Clock
-  write_oled_command(0xf0);  // was 22 (31)
-
-  write_oled_command(0xb7); // set default linear
-  write_oled_command(0xbb);  // set pre-charge setup
-  write_oled_command(0x35);  // set pre-charge setup
-  write_oled_command(0xff);  // set pre-charge setup
-
-  write_oled_command(0xbc);  // set pre-charge voltage
-  write_oled_command(0x1f);  // set pre-charge voltage
-
-  write_oled_command(0xbe);  // set VCOMH
-  write_oled_command(0x0f);  // set VCOMH
-  write_oled_command(0xAf);  // set Display ON
+      //----------------------------
 
 
+      	write_oled_command(0xAE);		//--Set Display off
+
+	write_oled_command(0x00);		//--set low column address
+
+	write_oled_command(0x10)		;//--set high column address
+
+	write_oled_command(0x81);		//--set contrast control register
+	write_oled_command(0x7f);
+
+	write_oled_command(0xa1);		//--set segment re-map 95 to 0
+
+	write_oled_command(0xA6);		//--set normal display
+
+	write_oled_command(0xa8);		//--set multiplex ratio(1 to 16)
+	write_oled_command(0x1f);		//--duty 1/32
+
+	write_oled_command(0xd3);		//--set display offset
+	write_oled_command(0x00);		//--not offset
+
+	write_oled_command(0xd5);		//--set display clock divide ratio/oscillator frequency
+	write_oled_command(0xf0);		//--set divide ratio
+
+	write_oled_command(0xd9);		//--set pre-charge period
+	write_oled_command(0x22);
+
+	write_oled_command(0xda);		//--set com pins hardware configuration
+	write_oled_command(0x02);		//disable left/right remap and set for sequential
+
+	write_oled_command(0xdb);		//--set vcomh
+	write_oled_command(0x49);		//--0.83*vref
+
+	write_oled_command(0x8d);		//--set DC-DC enable
+	write_oled_command(0x14);
+
+	write_oled_command(0xAF);		//--turn on oled panel
 
   
   
@@ -312,7 +387,7 @@ void clear_oled()
 {
     //memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
 
-    memset(&vbuf,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
+    memset(&vbuf,0x00,4*128); // I set the clear to be 0x11 instead of 0x00
                                // because the LCD would 'freak out' if lots
                                // of null data was sent
 
@@ -322,7 +397,7 @@ void clear_oled()
 
 void shade_oled (uint8_t shade)
 {
-        memset(&vbuf,shade,128*32);
+        memset(&vbuf,shade,4*128);
 }
 
 
@@ -411,7 +486,7 @@ uint32_t checksum()
     int i;
     int j;
     checksum =0;
-    for (i=0;i<32;i++)
+    for (i=0;i<4;i++)
 	for(j=0;j<128;j++)
 	    checksum = checksum+vbuf[i][j];
     return checksum;
@@ -466,18 +541,18 @@ static THD_FUNCTION(Thread2, arg) {
     
       // reverse pixels and then rotate entire display
       // before writing to LCD
-      for (x=0;x<32;x++)
+      for (x=0;x<4;x++)
 	  for (y=0;y<128;y++){
 	      pixel2 = (vbuf[x][y]&0xF0)>>4;
 	      pixel = (vbuf[x][y]&0x0F)<<4;
 	      if (blink==0)
 		{
 
-		  vbuf2[31-x][128-y] = 0xFF;
+		  //vbuf2[4-x][128-y] = 0xFF;
 		}
 	      else
 		{
-		  vbuf2[31-x][128-y] = pixel|pixel2;
+		  //vbuf2[4-x][128-y] = pixel|pixel2;
 
 		}
       }
@@ -485,7 +560,8 @@ static THD_FUNCTION(Thread2, arg) {
       spiStart(&SPID2,&std_spicfg3);
       spiSelect(&SPID2);
   
-      spiSend(&SPID2,128*32,&vbuf2);
+      //spiSend(&SPID2,128*4,&vbuf2);
+      spiSend(&SPID2,128*4,&vbuf);
       spiUnselect(&SPID2);
       spiStop(&SPID2);
       chThdSleepMilliseconds(1);
@@ -1160,13 +1236,13 @@ int main(void) {
   palSetPad(GPIOC,4);
   //palSetPad(GPIOC,5);
   
-  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)); // SPI3 
-  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6));
-  palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6));
+  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP); // SPI3 
+  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP);
   
   palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);                      // spi2
 
-  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
+  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST|PAL_MODE_INPUT_PULLUP);
   palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)|PAL_STM32_OSPEED_HIGHEST);
 
 
@@ -1221,13 +1297,14 @@ int main(void) {
   init_spi();
   chprintf((BaseSequentialStream*)&SD1,"SPI init\r\n");
   init_oled();
+  clear_oled();
   chprintf((BaseSequentialStream*)&SD1,"OLED init\r\n");
   
   chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
   
   feedWatchdog();
-  graphics_init();
+  //graphics_init();
   chThdSleepMilliseconds(1000);
   palClearPad(GPIOA, 1);     // Recieve Enable RS485
   palClearPad(GPIOE, 0);     // Disable TX Light
@@ -1265,7 +1342,7 @@ int main(void) {
       {
 	  feedWatchdog();
 
-	  step = (step +1)%256;
+	  step = (step +1)%128;
 	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
@@ -1345,8 +1422,17 @@ int main(void) {
 	  displaymetric = step/32;
 	  clear_oled();
 	  
-	  //chprintf((BaseSequentialStream*)&SD1,"%s\r\n",metrics[displaymetric]);
-	  oled_draw_big_string(0,0,metrics[displaymetric]);
+	  //vbuf[2][0]=0xff;
+	  //vbuf[2][2]=0xff;
+	  
+	  //shade_oled(0xf0);
+	  oled_hatch_screen();
+	  chprintf((BaseSequentialStream*)&SD1,"%d %d, %x\r\n",step%4,step,vbuf[step%4][step]);
+	  //oled_draw_string(0,0,metrics[displaymetric]);
+	  
+	  vbuf[step%4][step] = 0xff;
+	  //oled_draw_string(0,0,"01234567890");
+	  //oled_draw_string(0,1,"abcdefg");
 	  
        }
 
