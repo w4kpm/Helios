@@ -32,8 +32,8 @@
 #include "hal_queues.h"
 #include <string.h>
 #include "stm32f3xx.h"
-#include "font.h"
-//#include "fontbig.h"
+#include "tiny_font.h"
+#include "grotesk.h"
 static uint8_t txbuf[2];
 static uint8_t rxbuf[3];
 static uint8_t my_address;
@@ -86,7 +86,6 @@ static void adcerrorcallback(ADCDriver *adcp, adcerror_t err) {
 #define MISO 14
 #define MOSI 15
 #define DC 14
-
 
 
 
@@ -155,39 +154,24 @@ void led_write(location,data)
 
 void set_oled_text_pos(uint8_t x,uint8_t y)
 {
-    oled_current_column = (x*6+2);
-    oled_current_row = (y*16);
+    oled_current_column = (x*8);
+    oled_current_row = (y);
 }
 
 
 
-//void write_oled_char(char a)
-//{
-//  uint8_t j,i;
-//
-//   for (j=0; j<16; j++)
-//  {
-//
-//    for (i=0; i<6; i++)
-//    {
-//	vbuf[oled_current_row+j][oled_current_column+i] = font[a][j][i];
-//    }
-//  }}
-//
 
 void write_oled_char(char a)
 {
   uint8_t j,i;
 
-   for (j=0; j<16; j++)
-  {
+    for (i=0; i<tiny_font_cols; i++)
+      for (j=0;j<tiny_font_rows_char; j++)
+	{
+	  vbuf[oled_current_row+j][oled_current_column+i] = tiny_font[a-32][i*tiny_font_rows_char+j];
+	}
 
-    for (i=0; i<6; i++)
-    {
-	vbuf[oled_current_row+j][oled_current_column+i] = font[a][j][i];
-    }
-  }}
-
+}
 
 //void write_big_oled_char(char a)
 //{
@@ -207,18 +191,18 @@ void write_oled_char(char a)
 //
 //
 
+
 void write_big_oled_char(char a)
 {
   uint8_t j,i;
 
-   for (j=0; j<32; j++)
-  {
+    for (i=0; i<grotesk_cols; i++)
+      for (j=0; j<grotesk_rows_char;j++)
+	{
+	  vbuf[oled_current_row+j][oled_current_column+i] = grotesk[a-32][i*grotesk_rows_char+(grotesk_rows_char-1)-j];
+	}
 
-    for (i=0; i<12; i++)
-    {
-      vbuf[(oled_current_row+j)][(oled_current_column+i)] = 0xff;//fontbig[a][j][i];
-    }
-  }}
+}
 
 
 
@@ -352,7 +336,7 @@ void init_oled()
 	write_oled_command(0x81);		//--set contrast control register
 	write_oled_command(0x7f);
 
-	write_oled_command(0xa1);		//--set segment re-map 95 to 0
+
 
 	write_oled_command(0xA6);		//--set normal display
 
@@ -368,6 +352,16 @@ void init_oled()
 	write_oled_command(0xd9);		//--set pre-charge period
 	write_oled_command(0x22);
 
+	write_oled_command(0x20);              // memory mode
+	write_oled_command(0x00);             // horizontal mode
+	
+	write_oled_command(0xa0);		//--set segment re-map 95 to 0	
+
+	write_oled_command(0x22);
+	write_oled_command(0x0);
+	write_oled_command(0x3);
+	
+	
 	write_oled_command(0xda);		//--set com pins hardware configuration
 	write_oled_command(0x02);		//disable left/right remap and set for sequential
 
@@ -385,7 +379,7 @@ void init_oled()
 
 void clear_oled()
 {
-    //memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
+  //    memset(&vbuf2,0x00,128*32); // I set the clear to be 0x11 instead of 0x00
 
     memset(&vbuf,0x00,4*128); // I set the clear to be 0x11 instead of 0x00
                                // because the LCD would 'freak out' if lots
@@ -411,10 +405,12 @@ void graphics_init()
   //shade_oled(0x55);
   oled_draw_string(0,0,"Helios ");
   if (baud_rate == 1)
-      sprintf(text,"id=%d  baud=19200 ",my_address );
+      sprintf(text,"baud=19200 " );
   else
-      sprintf(text,"id=%d  baud=9600 ",my_address);
-  oled_draw_string(0,1,text);
+      sprintf(text,"baud=9600 ");
+  oled_draw_string(0,2,text);
+  sprintf(text,"id=%d ",my_address);
+  oled_draw_string(0,3,text);
 
 }
 
@@ -492,15 +488,6 @@ uint32_t checksum()
     return checksum;
 }
 
-float calcRainRate(){
-    int x;
-    int rainTotal;
-    rainTotal = 0;
-    for (x=0;x<10;x++)
-	rainTotal += rainHistory[x];
-    chprintf((BaseSequentialStream*)&SD1,"rainTotal %d \r\n",rainTotal);
-    return (rainTotal/100.0)*6.0;
-}
 
 static THD_WORKING_AREA(waThread1, 128);
 static THD_FUNCTION(Thread1, arg) {
@@ -537,25 +524,8 @@ static THD_FUNCTION(Thread2, arg) {
       
   while (TRUE) {
     
-    blink = palReadPad(GPIOC,6);
     
-      // reverse pixels and then rotate entire display
-      // before writing to LCD
-      for (x=0;x<4;x++)
-	  for (y=0;y<128;y++){
-	      pixel2 = (vbuf[x][y]&0xF0)>>4;
-	      pixel = (vbuf[x][y]&0x0F)<<4;
-	      if (blink==0)
-		{
-
-		  //vbuf2[4-x][128-y] = 0xFF;
-		}
-	      else
-		{
-		  //vbuf2[4-x][128-y] = pixel|pixel2;
-
-		}
-      }
+    
       palSetPad(GPIOB,DC);
       spiStart(&SPID2,&std_spicfg3);
       spiSelect(&SPID2);
@@ -1074,7 +1044,7 @@ static THD_FUNCTION(Thread6, arg) {
 	{
 	    // the skip is because the way I have it hooked up right now
 	    // causes it to read whatever we send.
-	    rainRate = calcRainRate();
+	    //rainRate = calcRainRate();
 	    for (x=0;x<9;x++)		  
 		rainHistory[9-x] = rainHistory[8-x];
 
@@ -1139,9 +1109,9 @@ float get_temp(device){
 
 void fillTemp(char* metric,float temp,int temp_num){
     if (abs(temp) >100)
-	sprintf(metric,"Temp%d: N/C",temp_num);
+	sprintf(metric,"T%d: N/C",temp_num);
     else
-	sprintf(metric,"Temp%d:%3.0fc",temp_num,temp);	    
+	sprintf(metric,"T%d: %3.0fc",temp_num,temp);	    
 }
 
 
@@ -1304,7 +1274,7 @@ int main(void) {
 
   
   feedWatchdog();
-  //graphics_init();
+  graphics_init();
   chThdSleepMilliseconds(1000);
   palClearPad(GPIOA, 1);     // Recieve Enable RS485
   palClearPad(GPIOE, 0);     // Disable TX Light
@@ -1393,44 +1363,45 @@ int main(void) {
 	  pt100temp3 = get_temp(2);
 	  pt100temp4 = get_temp(3);
 	  pt100temp5 = get_temp(4);
-	  sprintf(metrics[0],"Irr: %5.0f",irradiance3);
+	  sprintf(metrics[0],"Irr:%4.0f",irradiance3);
 	  if (amps < 0.003)
-	      sprintf(metrics[1],"Wind:  N/C");
+	      sprintf(metrics[1],"Wnd: N/C");
 	  else
-	      sprintf(metrics[1],"Wind: %4.0f",windspeed);
+	      sprintf(metrics[1],"Wnd: %3.0f",windspeed);
 	  fillTemp(metrics[2],pt100temp1,1);
 	  fillTemp(metrics[3],pt100temp2,2);
 	  fillTemp(metrics[4],pt100temp3,3);
 	  fillTemp(metrics[5],pt100temp4,4);
 	  if (palReadPad(GPIOC,7) == 0)
-	      sprintf(metrics[6],"Rain: %4.2f",rainRate);
+	      sprintf(metrics[6],"Rn: %3.1f",rainRate);
 	  else
 	      fillTemp(metrics[6],pt100temp5,5);
 	  if (snow < .025){
 	      snowoutput = 2;
-	      sprintf(metrics[7], "Snow:  N/C");
+	      sprintf(metrics[7], "Snw: N/C");
 	  }
 	  else if (snow < 1.2){
 	      snowoutput = 1;	     
-	      sprintf(metrics[7], "Snow: True");
+	      sprintf(metrics[7], "Snw: T ");
 	  }
 	  else{
 	      snowoutput = 0;
-	      sprintf(metrics[7], "Snow:False");
+	      sprintf(metrics[7], "Snw: F ");
 	  }
 
-	  displaymetric = step/32;
+	  displaymetric = step/16;
 	  clear_oled();
 	  
 	  //vbuf[2][0]=0xff;
 	  //vbuf[2][2]=0xff;
 	  
 	  //shade_oled(0xf0);
-	  oled_hatch_screen();
+	  //oled_hatch_screen();
 	  chprintf((BaseSequentialStream*)&SD1,"%d %d, %x\r\n",step%4,step,vbuf[step%4][step]);
-	  //oled_draw_string(0,0,metrics[displaymetric]);
+	  oled_draw_big_string(0,0,metrics[displaymetric]);
+	  //oled_draw_big_string(0,2,metrics[(displaymetric+1)%8]);
 	  
-	  vbuf[step%4][step] = 0xff;
+	  //vbuf[step%4][step] = 0xff;
 	  //oled_draw_string(0,0,"01234567890");
 	  //oled_draw_string(0,1,"abcdefg");
 	  
