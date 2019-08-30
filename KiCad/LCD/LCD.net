@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/kelly/Helios/KiCad/LCD/LCD.sch)
-    (date "Wed 07 Aug 2019 09:47:57 PM EDT")
+    (date "Tue 20 Aug 2019 10:08:27 AM EDT")
     (tool "Eeschema 5.0.2-bee76a0~70~ubuntu18.10.1")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -30,7 +30,7 @@
       (sheetpath (names /) (tstamps /))
       (tstamp 5D49DFF0))
     (comp (ref R1)
-      (value R)
+      (value 300)
       (footprint Resistor_SMD:R_1206_3216Metric)
       (datasheet ~)
       (libsource (lib Device) (part R) (description Resistor))
