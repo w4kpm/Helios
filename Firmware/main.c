@@ -54,7 +54,7 @@ static  float irradiance2;
 static  float irradiance3;
 static  int displaymetric;
 static  float pt100temp1,pt100temp2,pt100temp3,pt100temp4,pt100temp5;
-static  float amps,windspeed,windspeedout,opamp4,snow,snowoutput;
+static  float amps,windspeed,windspeedout,opamp4,snow,snowoutput,windamps,winddir;
 
 static uint8_t oled_current_row;
 static uint8_t oled_current_column;
@@ -65,7 +65,7 @@ static uint16_t *flash2 = 0x803e800;
 static uint16_t settings;
 
 #define ADC_GRP1_NUM_CHANNELS   2
-#define ADC_GRP2_NUM_CHANNELS   5
+#define ADC_GRP2_NUM_CHANNELS   6
 #define ADC_GRP1_BUF_DEPTH      1
 #define ADC_GRP2_BUF_DEPTH      1
 static adcsample_t samples1[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
@@ -110,7 +110,7 @@ static const SPIConfig std_spicfg3 = {
   GPIOB,                                                        /*port of CS  */
   SPISELECT,                                                /*pin of CS   */
   //SPI_CR1_CPOL|	SPI_CR1_CPHA |		\
-  //SPI_CR1_SPE|SPI_CR1_MSTR,
+  //SPI_CR1_SPE|SPI_CR1_MSTR|SPI_CR2_BR_2,
   0,
   SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0                    /*CR2 register*/
 };
@@ -576,7 +576,7 @@ static const ADCConversionGroup adcgrpcfg2 = {
   },
   {                         /* SQR[4]  Sequence Register - order & channel to read*/
       ADC_SQR1_SQ1_N(ADC_CHANNEL_IN13) | ADC_SQR1_SQ2_N(ADC_CHANNEL_IN18) | ADC_SQR1_SQ3_N(ADC_CHANNEL_IN10)|ADC_SQR1_SQ4_N(ADC_CHANNEL_IN3), // snow, internal reference, wind, solar (opamp)
-      ADC_SQR2_SQ5_N(ADC_CHANNEL_IN9), //solar (no opamp)
+      ADC_SQR2_SQ5_N(ADC_CHANNEL_IN9)|ADC_SQR2_SQ6_N(ADC_CHANNEL_IN11), //solar (no opamp),Wind Dir
     0,
     0
   }
@@ -921,6 +921,9 @@ static THD_FUNCTION(Thread4, arg) {
 			case 10:
 			    value = lifetimeRain*100;
 			    break;
+			case 11:
+			    value = winddir*10.0;
+			    break;
 			    
 
 			default:
@@ -1120,12 +1123,14 @@ int main(void) {
 
 
   palSetPadMode(GPIOD, 9, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 10, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOD, 11, PAL_MODE_INPUT_ANALOG);
   
  
   palSetPadMode(GPIOD, 12, PAL_MODE_INPUT_ANALOG);
   
   palSetPadMode(GPIOD, 13, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOD, 14, PAL_MODE_INPUT_ANALOG); // wind dir
 
 
   
@@ -1154,6 +1159,7 @@ int main(void) {
   palSetPadMode(GPIOC, 6, PAL_MODE_INPUT_PULLUP); // raingauge
   palSetPadMode(GPIOC, 7, PAL_MODE_INPUT_PULLUP); // rain enabled
   palSetPad(GPIOC,0);
+  palClearPad(GPIOD,10);
   palSetPad(GPIOC,1);
   palSetPad(GPIOC,2);
   palSetPad(GPIOC,3);
@@ -1265,7 +1271,7 @@ int main(void) {
       {
 	  feedWatchdog();
 
-	  step = (step +1)%256;
+	  step = (step +1)%288;
 	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
@@ -1301,13 +1307,19 @@ int main(void) {
 	      irradiance = irradiance2;
 	  irradiance3 = irradiance3*.9 + irradiance*.1;    
 	  amps = (calc_volts(VDD,samples2[2])/120.0);
+	  windamps = (calc_volts(VDD,samples2[5])/120.0);
 	  windspeed = (amps-0.004)*(50.0/.016);
+	  winddir = windamps*360.0/.02;
+	  if (winddir <0)
+	    winddir = 0;
+	  if (winddir > 360.0)
+	    winddir = 360;
 	  opamp4 = calc_volts(VDD,samples2[3]);
 	  snow = calc_volts(VDD,samples2[0]);
 	  if (windspeed < 0.5)
 	      windspeed = 0;
 	  else
-	      windspeed = windspeed*2.237;
+	    windspeed = windspeed*2.237;  //convert to MPH
 	  windspeedout = windspeed;
           //chprintf((BaseSequentialStream*)&SD1,"irr: %.2f  inside: %.2f ,vdd: %.2f windV: %.4f %.2fmph  snow %.2fv \r\n",irradiance3,internalTemp,VDD,amps,windspeed,snow);
 	  
@@ -1321,6 +1333,9 @@ int main(void) {
 	      sprintf(metrics[1],"Wind:  N/C");
 	  else
 	      sprintf(metrics[1],"Wind: %4.0f",windspeed);
+	  sprintf(metrics[8],"WDir: %4.0f",winddir);
+
+
 	  fillTemp(metrics[2],pt100temp1,1);
 	  fillTemp(metrics[3],pt100temp2,2);
 	  fillTemp(metrics[4],pt100temp3,3);
