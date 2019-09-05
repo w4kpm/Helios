@@ -1,29 +1,31 @@
-"Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet"
-"1","1","C1","100uF","device:CP1","Capacitors_SMD:C_1206_HandSoldering",""
-"2","4","C2, C4, C6, C8","1uF","device:C","Capacitors_SMD:C_1206_HandSoldering",""
-"3","4","C3, C5, C7, C9",".1uF","device:C","Capacitors_SMD:C_1206_HandSoldering",""
-"4","1","C10",".1u","device:C","Capacitors_SMD:C_1206_HandSoldering",""
-"5","10","C11, C12, C14, C15, C17, C18, C20, C21, C23, C24",".1 uF","device:C","Capacitors_SMD:C_1206_HandSoldering",""
-"6","5","C13, C16, C19, C22, C25","100nF","device:C","Capacitors_SMD:C_1206_HandSoldering",""
-"7","1","CON1","AVR-JTAG-10","atmel:AVR-JTAG-10","Pin_Headers:Pin_Header_Straight_2x05_Pitch2.54mm",""
-"8","8","D1, D2, D4, D5, D6, D7, D8, D9","D_Schottky","device:D_Schottky","Diodes_SMD:D_1206",""
-"9","1","D3","D_TVS_x2_AAC","device:D_TVS_x2_AAC","TO_SOT_Packages_SMD:SOT-23_Handsoldering",""
-"10","4","F1, F2, F3, F4","Polyfuse_Small","device:Polyfuse_Small","Resistors_SMD:R_1812_HandSoldering",""
-"11","6","J1, J2, J3, J4, J5, J6","Conn_01x04","conn:Conn_01x04","",""
-"12","1","J7","Conn_01x11","conn:Conn_01x11","Pin_Headers:Pin_Header_Straight_1x11_Pitch2.54mm",""
-"13","1","J8","Conn_01x06","conn:Conn_01x06","Pin_Headers:Pin_Header_Straight_1x06_Pitch2.54mm",""
-"14","1","J9","Conn_01x09","conn:Conn_01x09","Pin_Headers:Pin_Header_Straight_1x09_Pitch2.54mm",""
-"15","1","J10","Conn_01x10","conn:Conn_01x10","Pin_Headers:Pin_Header_Straight_1x10_Pitch2.54mm",""
-"16","1","J11","Conn_01x16","conn:Conn_01x16","Pin_Headers:Pin_Header_Straight_2x08_Pitch2.54mm",""
-"17","1","R1","0","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"18","2","R2, R3","10","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"19","1","R4","9k","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"20","1","R5","125","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"21","1","R6","1k","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"22","1","R7","10k","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"23","5","R8, R9, R10, R11, R12","430 .1%","device:R","Capacitors_SMD:C_1206_HandSoldering",""
-"24","2","RV1, RV2","Varistor","device:Varistor","Resistors_SMD:R_1210_HandSoldering",""
-"25","1","U1","LM78l33_TO220","regul:LM7812_TO220","TO_SOT_Packages_THT:TO-220-3_Vertical",""
-"26","1","U2","STM32F303V(B-C)Tx_u","stm32:STM32F303V(B-C)Tx_u","Housings_QFP:LQFP-100_14x14mm_Pitch0.5mm",""
-"27","1","U3","SN65HV7X","MyParts:SN65HV7X","Housings_SOIC:SO-8_5.3x6.2mm_Pitch1.27mm",""
-"28","5","U4, U5, U6, U7, U8","MAX31865","MyParts:MAX31865","Housings_SSOP:SSOP-20_5.3x7.2mm_Pitch0.65mm",""
+Id,Designator,Package,Quantity,Designation,MFG,MFG Ref,Supplier,Supplier Ref,SMD,Through
+1,"R5,R14",R_1206_3216Metric,2,120,Vishay/Dale,RCS1206120RFKEA,Mouser,71-RCS1206120RFKEA,1,
+2,"C2,C6,C4,C8",C_1206_3216Metric,4,1 uF,vishay,VJ1206Y105KXQTW1BC,,Generic 1uF 1206 10%,1,
+3,C1,CP_Elec_5x5.3,1,100uF,Illinois Capacitor,107SML035M,,Generic 35v 100uF 6.3mm,1,
+4,CON1,Pin_Header_Straight_2x05_Pitch2.54mm,0,AVR-JTAG-10,NOT POPULATED!,,,,,
+5,U2,LQFP-100_14x14mm_Pitch0.5mm,1,STM32F303V(B-C)Tx_u,STM,STM32F303VCT6,mouser,511-STM32F303VCT6,1,
+6,U3,SO-8_6.3x7.7mm_Pitch1.27mm,1,SN65HV7X,Texas Insturments,SN65HVD72D,mouser,595-SN65HVD72D,1,
+7,"U4,U5,U6,U7,U8",SSOP-20_5.3x7.2mm_Pitch0.65mm,5,MAX31865,Maxim Integrated,MAX31865AAP+,Mouser,700-MAX31865AAP+,1,
+8,U1,TO-220_Neutral123_Vertical,1,LM78l33_TO220,RECOM power,R-78E3.3-0.5,Mouser,919-R-78E3.3-0.5,,1
+9,"J1,J2,J3",CH20Mr,0,Conn_01x04,NOT POPULATED!,,,,,
+10,"J4,J5,J6",CH20Mt,0,Conn_01x04,NOT POPULATED!,,,,,
+11,"F5,F1,F2,F3,F4",R_1812_4532Metric,5,Polyfuse_Small,littlefuse,1812L010DR,Mouser,576-1812L010DR,1,
+12,Q1,SOT-223-3_TabPin2,1,Q_NMOS_GDS,Vishay,SIHFL110TR-GE3,Mouser,78-SIHFL110TR-GE3,1,
+13,"R13,R15,R16,R7",R_1206_3216Metric,4,10k,vishay Dale,RCS120610K0JNEA,,Generic 10k ohm 5% 1206,1,
+14,J7,DIP-20_W7.62mm_Socket,1,Conn_02x10_Counter_Clockwise,TE Connectivity,1-216602-0,Digikey,A107211-ND,,1
+15,"SW1,SW2",DPDT,2,SW_DPDT_x2,Wurth Elektronik,452403012014,Mouser,710-452403012014,1,
+16,D3,SOT-23,1,D_TVS_x2_AAC,Bourns,CDSOT23-SM712,Mouser,652-CDSOT23-SM712,1,
+17,"R2,R3",TBU,2,TBU,Bourns,TBU-CA065-200-WH,Mouser,652-TBU-CA065-200-WH,1,
+18,R1,R_1206_3216Metric,1,0,Vishay,CRCW12060000Z0EAC,Mouser,71-CRCW12060000Z0EAC,1,
+19,"C7,C3,C11,C12,C13,C14,C15,C16,C17,C18,C19,C20,C21,C22,C23,C24,C25,C5,C9,C10",C_1206_3216Metric,20,.1 uF,Taiyo,HMK316B7104MLHT,,Generic .1uF 1206 10%,1,
+20,R4,R_1206_3216Metric,1,9k,Vishay/Dale,CRCW12069K10FKEAC,,Generic 9.1k 1% 1206,1,
+21,R6,R_1206_3216Metric,1,1k,Panasonic,ERJ-S08F1001V,,Generic 1.0k 1% 1206,1,
+22,"R8,R9,R10,R11,R12",R_1206_3216Metric,5,430 .1%,Panasonic,ERA-8AEB431V,Mouser,667-ERA-8AEB431V,1,
+23,J8,PinSocket_1x06_P2.54mm_Vertical,0,Conn_01x06,NOT POPULATED!,,,,,
+24,"RV1,RV2",R_1210_3225Metric,2,Varistor,AVX,VC121030S620DP,Mouser,581-VC121030S620DP,1,
+25,"D1,D2,D4,D5,D6,D7,D8,D9",D_1206_3216Metric,8,D_Schottky,AVX,SD1206S040S0R5,Mouser,581-SD1206S040S0R5,1,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+,,,69,,,,,,19,2
