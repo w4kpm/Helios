@@ -227,6 +227,11 @@ Connection ~ 6900 1500
 Wire Wire Line
 	6900 1400 7400 1400
 Connection ~ 6900 1400
-NoConn ~ 7400 1900
-NoConn ~ 6900 1900
+Wire Wire Line
+	6900 1900 7400 1900
+Text HLabel 5850 1900 0    60   Input ~ 0
+~rst
+Wire Wire Line
+	6900 1900 5850 1900
+Connection ~ 6900 1900
 $EndSCHEMATC

@@ -25,11 +25,14 @@ F 3 "" H 5650 3650 50  0000 C CNN
 	6    5650 3650
 	-1   0    0    1   
 $EndComp
-NoConn ~ 4250 3350
 NoConn ~ 4250 3450
 NoConn ~ 4250 3550
 NoConn ~ 4250 3650
 NoConn ~ 4250 3750
 NoConn ~ 4250 3850
 NoConn ~ 4250 3950
+Text HLabel 3150 3350 0    60   Input ~ 0
+~reset
+Wire Wire Line
+	4250 3350 3150 3350
 $EndSCHEMATC
