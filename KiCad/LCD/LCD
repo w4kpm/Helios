@@ -1,0 +1,27 @@
+"Source:","/home/kelly/Helios/KiCad/LCD/LCD.sch"
+"Date:","Tue 20 Aug 2019 10:07:17 AM EDT"
+"Tool:","Eeschema 5.0.2-bee76a0~70~ubuntu18.10.1"
+"Generator:","/usr/share/kicad/plugins/bom_csv_grouped_by_value.py"
+"Component Count:","7"
+
+"Individual Components:"
+
+"Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet"
+"","","C1","1uf","Device:C","Capacitor_SMD:C_1206_3216Metric","~"
+"","","D1","LED","Device:LED","LED_SMD:LED_1206_3216Metric","~"
+"","","D2","LED","Device:LED","LED_SMD:LED_1206_3216Metric","~"
+"","","J1","Conn_01x10","Connector_Generic:Conn_01x10","Connector_PinHeader_2.54mm:PinHeader_1x10_P2.54mm_Vertical","~"
+"","","J2","Conn_01x12","Connector_Generic:Conn_01x12","","~"
+"","","R1","300","Device:R","Resistor_SMD:R_1206_3216Metric","~"
+"","","R2","300","Device:R","Resistor_SMD:R_1206_3216Metric","~"
+
+
+
+"Collated Components:"
+
+"Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet"
+"1","1","C1","1uf","Device:C","Capacitor_SMD:C_1206_3216Metric","~"
+"2","2","D1, D2","LED","Device:LED","LED_SMD:LED_1206_3216Metric","~"
+"3","1","J1","Conn_01x10","Connector_Generic:Conn_01x10","Connector_PinHeader_2.54mm:PinHeader_1x10_P2.54mm_Vertical","~"
+"4","1","J2","Conn_01x12","Connector_Generic:Conn_01x12","Amphenol SFV12R-4STBE1HLF P0.50mm_Horizontal","~"
+"5","2","R1, R2","300","Device:R","Resistor_SMD:R_1206_3216Metric","~"
