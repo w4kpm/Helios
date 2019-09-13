@@ -45,7 +45,7 @@ static uint8_t reset =0;
 static char text[255];
 static char metrics[9][12];
 
-//static uint8_t vbuf2[4][128];
+static uint8_t vbuf2[4][128];
 static uint8_t vbuf[4][128];
 static uint8_t rainHistory[10] = {0};
 static float rainRate,lifetimeRain = 0.0;
@@ -323,6 +323,9 @@ void init_oled()
 //
 //     write_oled_command(0xaF); // Set_Display_On
 //
+      chThdSleepMilliseconds(100);
+      palSetPad(GPIOD,10);
+      chThdSleepMilliseconds(100);
 
       //----------------------------
 
@@ -375,6 +378,21 @@ void init_oled()
 
   
   
+}
+
+uint8_t transpose(uint8_t in){
+  uint8_t newchar =0;
+  newchar = newchar | ((in & 0x80) >> 7);
+  newchar = newchar | ((in & 0x40) >> 5);
+  newchar = newchar | ((in & 0x20) >> 3);
+  newchar = newchar | ((in & 0x10) >> 1);
+  newchar = newchar | ((in & 0x08) << 1);
+  newchar = newchar | ((in & 0x04) << 3);
+  newchar = newchar | ((in & 0x02) << 5);
+  newchar = newchar | ((in & 0x01) << 7);
+
+  return newchar;
+
 }
 
 void clear_oled()
@@ -529,9 +547,14 @@ static THD_FUNCTION(Thread2, arg) {
       palSetPad(GPIOB,DC);
       spiStart(&SPID2,&std_spicfg3);
       spiSelect(&SPID2);
-  
-      //spiSend(&SPID2,128*4,&vbuf2);
-      spiSend(&SPID2,128*4,&vbuf);
+      for (x=0;x<4;x++)
+	for (y=0;y<128;y++)
+	  if (blink==0)
+	    vbuf2[3-x][127-y] = 0xff;
+	  else
+	    vbuf2[3-x][127-y] = transpose(vbuf[x][y]);
+      spiSend(&SPID2,128*4,&vbuf2);
+      //spiSend(&SPID2,128*4,&vbuf);
       spiUnselect(&SPID2);
       spiStop(&SPID2);
       chThdSleepMilliseconds(1);
@@ -1111,7 +1134,7 @@ float get_temp(device){
 
 
 void fillTemp(char* metric,float temp,int temp_num){
-    if (abs(temp) >100)
+  if ((abs(temp) >100)||(isnan(temp)==1))
 	sprintf(metric,"T%d: N/C",temp_num);
     else
 	sprintf(metric,"T%d: %3.0fc",temp_num,temp);	    
@@ -1318,7 +1341,7 @@ int main(void) {
       {
 	  feedWatchdog();
 
-	  step = (step +1)%288;
+	  step = (step +1)%144;
 	 
 	  adcStart(&ADCD4, NULL);
 	  adcConvert(&ADCD4, &adcgrpcfg2, samples2, ADC_GRP2_BUF_DEPTH);
