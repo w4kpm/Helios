@@ -121,7 +121,7 @@ void led_write0(location)
   spiStart(&SPID2,&std_spicfg3);
   spiSelect(&SPID2);
   txbuf[0] = location;
-  spiSend(&SPID2,1,&txbuf);
+  spi(&SPID2,1,&txbuf);
   spiUnselect(&SPID2);
   spiStop(&SPID2);
 }
@@ -542,7 +542,7 @@ static THD_FUNCTION(Thread2, arg) {
       
   while (TRUE) {
     
-    
+      blink = palReadPad(GPIOC,6);
     
       palSetPad(GPIOB,DC);
       spiStart(&SPID2,&std_spicfg3);
@@ -1063,14 +1063,22 @@ static THD_FUNCTION(Thread5, arg) {
 }
 
 
+float calcRainRate(){
+    int x;
+    int rainTotal;
+    rainTotal = 0;
+    for (x=0;x<10;x++)
+	rainTotal += rainHistory[x];
+    chprintf((BaseSequentialStream*)&SD1,"rainTotal %d \r\n",rainTotal);
+    return (rainTotal/100.0)*6.0;
+}
+
 static THD_WORKING_AREA(waThread6, 128);
 static THD_FUNCTION(Thread6, arg) {
     int x;
     while (TRUE)
 	{
-	    // the skip is because the way I have it hooked up right now
-	    // causes it to read whatever we send.
-	    //rainRate = calcRainRate();
+	    rainRate = calcRainRate();
 	    for (x=0;x<9;x++)		  
 		rainHistory[9-x] = rainHistory[8-x];
 
@@ -1134,7 +1142,7 @@ float get_temp(device){
 
 
 void fillTemp(char* metric,float temp,int temp_num){
-  if ((abs(temp) >100)||(isnan(temp)==1))
+  if ((abs(temp) >100) || (isnan(temp)==1))
 	sprintf(metric,"T%d: N/C",temp_num);
     else
 	sprintf(metric,"T%d: %3.0fc",temp_num,temp);	    
@@ -1235,9 +1243,9 @@ int main(void) {
   palSetPad(GPIOC,4);
   //palSetPad(GPIOC,5);
   
-  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP); // SPI3 
-  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6)|PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOC, 10, PAL_MODE_ALTERNATE(6)); // SPI3 
+  palSetPadMode(GPIOC, 11, PAL_MODE_ALTERNATE(6));
+  palSetPadMode(GPIOC, 12, PAL_MODE_ALTERNATE(6));
   
   palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);                      // spi2
 
