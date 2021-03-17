@@ -1,0 +1,8 @@
+### Module positions - created on Tue 20 Aug 2019 10:46:46 AM EDT ###
+### Printed by Pcbnew version kicad 5.0.2-bee76a0~70~ubuntu18.10.1
+## Unit = mm, Angle = deg.
+## Side : bottom
+# Ref     Val         Package                                                 PosX       PosY       Rot  Side
+C1        1uf         C_1206_3216Metric                                  -170.4240   -73.1114    0.0000  bottom
+J2        Conn_01x12  Amphenol SFV12R-4STBE1HLF .5mm  -171.4200   -53.1978    0.0000  bottom
+## End

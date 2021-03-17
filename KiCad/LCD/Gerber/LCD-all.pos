@@ -1,0 +1,12 @@
+### Module positions - created on Thu 13 Aug 2020 04:46:07 PM EDT ###
+### Printed by Pcbnew version kicad 5.1.5+dfsg1-2build2
+## Unit = mm, Angle = deg.
+## Side : All
+# Ref     Val         Package                                                 PosX       PosY       Rot  Side
+C1        1uf         C_1206_3216Metric                                  -170.4240   -73.1114    0.0000  bottom
+J2        Conn_01x12  Hirose_FH12-12S-0.5SH_1x12-1MP_P0.50mm_Horizontal  -171.6938   -52.7202    0.0000  bottom
+D1        LED         LED_1206_3216Metric                                 170.4594  -103.5609   90.0000  top
+D2        LED         LED_1206_3216Metric                                 174.4269  -103.6625   90.0000  top
+R1        300         R_1206_3216Metric                                   178.8465  -103.4470   90.0000  top
+R2        300         R_1206_3216Metric                                   166.2786  -103.5537  270.0000  top
+## End
